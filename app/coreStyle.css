@@ -1,3 +1,7 @@
+
+.restOftitleBar{
+	color: LightGray;
+}
 h1   {
 	font-family: 'Space Mono', monospace;
 	font-size: 5em;
@@ -32,7 +36,7 @@ p    {
 }
 
 hr{
-	width: 100px;
+	width: 75px;
 	height: 4px;
 	/* color is for IE */
 	color: #444444;
