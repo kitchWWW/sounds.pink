@@ -21,7 +21,7 @@ h3   {
 	line-height: 0.7em;
 }
 
-p    {
+p{
 	font-family: 'Open Sans', sans-serif;
 	color: grey;
 }
@@ -47,5 +47,53 @@ hr{
 	/* A zero-margin aligns it in most web browsers */
 	margin: 0;
 	/* Aligns it in IE */
+	text-align: left;
+}
+
+
+
+
+
+.homepagelink:{
+	text-decoration: none;
+}
+
+.homepagelink:link {
+  color: LightGray;
+	text-decoration: none;
+}
+
+/* visited link */
+.homepagelink:visited {
+  color: LightGray;
+	text-decoration: none;
+}
+
+/* mouse over link */
+.homepagelink:hover {
+  color: pink;
+	text-decoration: none;
+}
+
+/* selected link */
+.homepagelink:active {
+  color: LightGray;
+	text-decoration: none;
+}
+
+.homepagelinks{
+	margin-top: 2em;
+	font-family: 'Space Mono', monospace;
+	color: LightGray;
+	font-size: 2em;
+	line-height: 0.7em;
+}
+
+
+.paragraphContent{
+	max-width: 500px;
+	margin-top: 4em;
+	font-family: 'Open Sans', sans-serif;
+	color: grey;
 	text-align: left;
 }

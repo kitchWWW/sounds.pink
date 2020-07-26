@@ -3,35 +3,35 @@ body {
 	background-color: white;
 }
 
-.homepagelink:{
+.titlePageLink:{
 	text-decoration: none;
 }
 
 
-.homepagelink:link {
+.titlePageLink:link {
   color: grey;
 	text-decoration: none;
 }
 
 /* visited link */
-.homepagelink:visited {
+.titlePageLink:visited {
   color: grey;
 	text-decoration: none;
 }
 
 /* mouse over link */
-.homepagelink:hover {
+.titlePageLink:hover {
   color: pink;
 	text-decoration: none;
 }
 
 /* selected link */
-.homepagelink:active {
+.titlePageLink:active {
   color: grey;
 	text-decoration: none;
 }
 
-.homepagelinks{
+.titlePageLinks{
 	margin-top: 2em;
 	font-family: 'Space Mono', monospace;
 	color: LightGray;

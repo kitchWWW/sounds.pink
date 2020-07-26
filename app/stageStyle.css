@@ -1,0 +1,47 @@
+body {
+	margin-top: 3em;
+	background-color: white;
+
+	margin-bottom: 10em;
+}
+
+.paragraphContent{
+	max-width: 500px;
+	margin-top: 4em;
+
+}
+
+.tableName{
+	text-align: right;
+}
+
+td{
+	font-family: 'Open Sans', sans-serif;
+		color: grey;
+}
+
+
+
+a:link {
+  color: #444444;
+	text-decoration: none;
+}
+
+/* visited link */
+a:visited {
+  color: #444444;
+	text-decoration: none;
+}
+
+/* mouse over link */
+a:hover {
+  color: pink;
+	text-decoration: none;
+}
+
+/* selected link */
+a:active {
+  color: #444444;
+	text-decoration: none;
+}
+
