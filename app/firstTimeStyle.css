@@ -1,0 +1,89 @@
+body {
+	margin-top: 3em;
+	background-color: white;
+
+	margin-bottom: 10em;
+}
+
+.restOftitleBar{
+	color: LightGray;
+}
+.firstTimeNumber {
+	font-family: 'Open Sans', sans-serif;
+	color: Grey;
+	font-size: 1.7em;
+	line-height: 0.7em;
+	margin-top: 2em;
+}
+.firstTimeListOptions{
+	margin-top: 0px;
+	font-family: 'Open Sans', sans-serif;
+	color: grey;
+
+}
+
+
+
+
+
+a:link {
+  color: #444444;
+	text-decoration: none;
+}
+
+/* visited link */
+a:visited {
+  color: #444444;
+	text-decoration: none;
+}
+
+/* mouse over link */
+a:hover {
+  color: pink;
+	text-decoration: none;
+}
+
+/* selected link */
+a:active {
+  color: #444444;
+	text-decoration: none;
+}
+
+
+
+
+
+.homepagelink:{
+	text-decoration: none;
+}
+
+.homepagelink:link {
+  color: LightGray;
+	text-decoration: none;
+}
+
+/* visited link */
+.homepagelink:visited {
+  color: LightGray;
+	text-decoration: none;
+}
+
+/* mouse over link */
+.homepagelink:hover {
+  color: pink;
+	text-decoration: none;
+}
+
+/* selected link */
+.homepagelink:active {
+  color: LightGray;
+	text-decoration: none;
+}
+
+.homepagelinks{
+	margin-top: 2em;
+	font-family: 'Space Mono', monospace;
+	color: LightGray;
+	font-size: 2em;
+	line-height: 0.7em;
+}

@@ -1,0 +1,47 @@
+h1   {
+	font-family: 'Space Mono', monospace;
+	font-size: 5em;
+	line-height: 0.5em;
+	color: black;
+}
+h2   {
+	font-family: 'Space Mono', monospace;
+	color: LightGray;
+	font-size: 2em;
+	line-height: 0.7em;
+}
+h3   {
+	font-family: 'Space Mono', monospace;
+	color: Grey;
+	font-size: 1.5em;
+	line-height: 0.7em;
+}
+
+p    {
+	font-family: 'Open Sans', sans-serif;
+	color: grey;
+}
+
+
+.titlePink{
+	color: pink;
+}
+.titleLink{
+	text-decoration: none;
+	color: black;
+}
+
+hr{
+	width: 100px;
+	height: 4px;
+	/* color is for IE */
+	color: #444444;
+	/* background is for all other web browsers */
+	background: #444444;
+	/* border: 0 removes the shading in most web browsers */
+	border: 0;
+	/* A zero-margin aligns it in most web browsers */
+	margin: 0;
+	/* Aligns it in IE */
+	text-align: left;
+}

@@ -1,0 +1,75 @@
+/* Create two equal columns that floats next to each other */
+.column {
+    float: left;
+    padding: 10px;
+}
+
+/* Clear floats after the columns */
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Responsive layout - makes the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 600px) {
+    .column {
+        width: 100%;
+    }
+}
+
+.experienceButton{
+  width: 200px;
+}
+
+.myTitle {
+  font-size: 55px;
+  font-family: "Arial";
+  text-align: center;
+  color: #5762D5;
+    font-weight: bold;
+}
+
+.mySubTitle {
+  font-style: italic;
+  font-size: 20px;
+ color: #7A7093;
+
+}
+.myBodyParagraph{
+  font-family: "Arial";
+  text-align: left;
+  color:#555555;
+
+}
+
+.experiencesList{
+  font-family: "Arial";
+  text-align: center;
+}
+
+body {
+	background-color: #AEFEFA;
+
+}
+
+#mapid { height: 180px; }
+
+
+.everything{
+  padding: 10px;
+  min-height: : 800px;
+}
+
+.center {
+	border-radius: 25px;
+ 	text-align: center;
+  margin: auto;
+  max-width: 500px;
+  background-color: #FFFFFF;
+  padding: 20px;
+}
+
+.devInfo {
+ 	text-align: left;
+}

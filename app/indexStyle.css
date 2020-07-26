@@ -1,0 +1,40 @@
+body {
+	margin-top: 10em;
+	background-color: white;
+}
+
+.homepagelink:{
+	text-decoration: none;
+}
+
+
+.homepagelink:link {
+  color: grey;
+	text-decoration: none;
+}
+
+/* visited link */
+.homepagelink:visited {
+  color: grey;
+	text-decoration: none;
+}
+
+/* mouse over link */
+.homepagelink:hover {
+  color: pink;
+	text-decoration: none;
+}
+
+/* selected link */
+.homepagelink:active {
+  color: grey;
+	text-decoration: none;
+}
+
+.homepagelinks{
+	margin-top: 2em;
+	font-family: 'Space Mono', monospace;
+	color: LightGray;
+	font-size: 2em;
+	line-height: 0.7em;
+}

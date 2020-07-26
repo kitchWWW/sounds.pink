@@ -1,0 +1,40 @@
+<html>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pizzicato/0.6.1/Pizzicato.min.js"></script>
+	<body>
+		<div class="everything">
+			<div class="center">
+				<div class="myTitle">
+					Social! <br> Distance! <br>Telephone!
+				</div>
+				<br>
+				<div class="p-2  bd-highlight">
+					<button
+					id="listenToPast"
+					type="button"
+					class="btn btn-secondary"
+					onclick="rerecord()">
+					Record!
+					</button>
+					<br/>
+				</div>
+				<div id="instructionsDurringRecording">
+					<span id="instructions"></span>
+					<span id="countdownDisplay"></span>
+				</div>
+				<div id="finishedRecording" style="display: none">
+					All done!<br>
+					<button id="listenToCurrentRecording" type="button" class="btn btn-secondary" onclick="listenToRecording()">Listen to recording</button>
+					<br>
+					<button id="listenToCurrentRecording" type="button" class="btn btn-secondary" onclick="rerecord()">re-record</button>
+					<br>
+					<button id="listenToCurrentRecording" type="button" class="btn btn-secondary" onclick="submit()">Submit!</button>
+				</div>
+				<div id="submitted"  style="display: none">
+					Thankyou!
+				</div>
+			</div>
+		</div>
+	</body>
+	<link href="example.css" rel="stylesheet">
+	<script src="new.js"></script>
+</html>
