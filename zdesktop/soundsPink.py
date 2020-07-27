@@ -82,6 +82,22 @@ def turnJsonIntoMidi(jsonOBJ):
 				'val':round(jsonOBJ['pos'][k]*127,0)
 			}
 			startingCC+=1
+	elif('alpha' in jsonOBJ['pos']):
+		# then it is emotion one!
+		print(jsonOBJ['pos'])
+		for k in jsonOBJ['pos']:
+			valToUse = abs(jsonOBJ['pos'][k])
+			
+			while valToUse > 180:
+				valToUse = valToUse - 180;
+			while valToUse > 90:
+				valToUse = valToUse - 90;
+			valToUse = round((valToUse / 90.0) * 127)
+			pos[k] = {
+				'cc':startingCC,
+				'val':valToUse
+			}
+			startingCC+=1
 	print(pos)
 	return {
 		'status':JSON_PARSE_STATUS_GOOD,
@@ -164,6 +180,7 @@ def doClose():
 def updateInformLabel():
 	global CUSTOM_CODE
 	global CUSTOM_CODE_IS_VALID
+	global MIDI_PORT_SELECTED
 
 	print(custom_code_sv.get())
 	
@@ -195,6 +212,7 @@ def updateInformLabel():
 
 
 def OptionMenu_SelectionEvent(event):
+	global MIDI_PORT_SELECTED
 	print("wow changing to the new thing")
 	print(event);
 	MIDI_PORT_SELECTED = event

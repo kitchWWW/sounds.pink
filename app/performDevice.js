@@ -49,25 +49,32 @@ function updateXY(event) {
 var CUSTOM_CODE = getUrlVars()['code']
 document.getElementById('customCode').innerHTML = CUSTOM_CODE
 
-
-if (typeof DeviceMotionEvent.requestPermission === 'function') {
-  console.log("hi?")
-  DeviceMotionEvent.requestPermission()
-    .then(permissionState => {
-      if (permissionState === 'granted') {
-        // window.addEventListener('devicemotion', $scope.updateXY, true);
-        window.addEventListener("deviceorientation", updateXY, true);
-      }
-    })
-    .catch(console.error);
-} else {
-  console.log("hi? 2")
-  window.addEventListener("deviceorientation", updateXY, true);
+function doRequest(){
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    console.log("hi?")
+    DeviceMotionEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          // window.addEventListener('devicemotion', $scope.updateXY, true);
+          window.addEventListener("deviceorientation", updateXY, true);
+        }
+      })
+      .catch(console.error);
+  } else {
+    console.log("hi? 2")
+    window.addEventListener("deviceorientation", updateXY, true);
+  }
+  document.getElementById('alphaValue').innerHTML = "waiting..."
+  document.getElementById('betaValue').innerHTML = "waiting..."
+  document.getElementById('gammaValue').innerHTML = "waiting..."
+  document.getElementById('startButton').innerHTML = "started."
 }
 
 
-window.onclick = function(){
+
+window.onclick = function() {
   var noSleep = new NoSleep();
   noSleep.enable()
-}
 
+
+}
