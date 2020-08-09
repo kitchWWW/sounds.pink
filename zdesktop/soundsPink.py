@@ -98,6 +98,16 @@ def turnJsonIntoMidi(jsonOBJ):
 				'val':valToUse
 			}
 			startingCC+=1
+	elif('angleOfHead' in jsonOBJ['pos']):
+		# then it is the pose one, and we do the math on the website.
+		print(jsonOBJ['pos'])
+		for k in jsonOBJ['pos']:
+			valToUse = abs(jsonOBJ['pos'][k])
+			pos[k] = {
+				'cc':startingCC,
+				'val':valToUse
+			}
+			startingCC+=1
 	print(pos)
 	return {
 		'status':JSON_PARSE_STATUS_GOOD,

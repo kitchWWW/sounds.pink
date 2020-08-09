@@ -28,9 +28,9 @@ async function postData(url = '', data = {}) {
 function updateXY(event) {
   console.log("update");
   console.log(event);
-  var alpha = event.alpha;
-  var beta = event.beta;
-  var gamma = event.gamma;
+  var alpha = event.alpha.toFixed(2);
+  var beta = event.beta.toFixed(2);
+  var gamma = event.gamma.toFixed(2);
   document.getElementById('alphaValue').innerHTML = alpha
   document.getElementById('betaValue').innerHTML = beta
   document.getElementById('gammaValue').innerHTML = gamma
