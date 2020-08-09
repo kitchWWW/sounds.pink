@@ -2,7 +2,7 @@
 ### turn motion into midi
 
 ## overview of product
-sounds.pink is a pipeline for harnessing AI to allow you to translate movement, emotions, and device orientation into midi control data. Thus, it consists of a web site ([sounds.pink](https://sounds.pink)) that takes your position inputs, and a desktop application that contacts the server and outputs this data as midi information.
+sounds.pink is a pipeline for harnessing AI to allow you to translate movement, emotions, and device orientation into midi control data. It consists of a web site ([sounds.pink](https://sounds.pink)) that takes your position inputs, and a desktop application that contacts the server and outputs this data as midi information.
 
 ## overview of code
 A couple of things live in this repo:
@@ -20,12 +20,9 @@ Currently we are in "make it work" mode. (meaning things are still quite broken)
 
 ## todo list:
 
-- The desktop application can only forward midi information for EMOTION and DEVICE, not yet for POSE. This is the #1 priority.
-- Making a message appear on the stage when data is sending.
 - Windows support
 - Linux support
 - midi smoothing so the controls don't jump around sporadically. 
 - automatically cleaning up old position files after a user has not messed with it for 24 hours.
 
 If anyone wants to work on this with me, I would love to have some help making this project run!
-

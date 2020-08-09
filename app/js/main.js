@@ -30,7 +30,9 @@ async function postData(url = '', data = {}) {
 
 
 var CUSTOM_CODE = getUrlVars()['code']
-document.getElementById('customCode').innerHTML = CUSTOM_CODE
+function updateCustomCodeDisplay(){
+  document.getElementById('customCode').innerHTML = CUSTOM_CODE
+}
 
 
 console.log("hello!");
@@ -84,9 +86,8 @@ video.addEventListener("playing", () => {
         id: CUSTOM_CODE,
         pos: resizedDetections[0]['expressions']
       })
-
+      updateCustomCodeDisplay();
     }
-
   }, 50);
 });
 

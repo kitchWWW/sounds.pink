@@ -37,7 +37,10 @@ PoseNet using p5.js
 === */
 
 var CUSTOM_CODE = getUrlVars()['code']
-document.getElementById('customCode').innerHTML = CUSTOM_CODE
+function updateCustomCodeDisplay(){
+  document.getElementById('customCode').innerHTML = CUSTOM_CODE
+}
+
 
 // Grab elements, create settings, etc.
 var video = document.getElementById('video');
@@ -134,6 +137,7 @@ function drawKeypoints() {
       id: CUSTOM_CODE,
       pos: pos
     })
+    updateCustomCodeDisplay();
   }
 
   // Loop through all the poses detected

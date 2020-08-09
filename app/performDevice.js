@@ -26,15 +26,13 @@ async function postData(url = '', data = {}) {
 
 
 function updateXY(event) {
-  console.log("update");
-  console.log(event);
   var alpha = event.alpha.toFixed(2);
   var beta = event.beta.toFixed(2);
   var gamma = event.gamma.toFixed(2);
   document.getElementById('alphaValue').innerHTML = alpha
   document.getElementById('betaValue').innerHTML = beta
   document.getElementById('gammaValue').innerHTML = gamma
-  postData('/dance', {
+  response = postData('/dance', {
     id: CUSTOM_CODE,
     pos: {
       alpha,
@@ -42,16 +40,18 @@ function updateXY(event) {
       gamma,
     }
   })
+  console.log(response)
+  updateCustomCodeDisplay();
 }
 
 
-
 var CUSTOM_CODE = getUrlVars()['code']
-document.getElementById('customCode').innerHTML = CUSTOM_CODE
+function updateCustomCodeDisplay(){
+  document.getElementById('customCode').innerHTML = CUSTOM_CODE
+}
 
 function doRequest(){
     if (typeof DeviceMotionEvent.requestPermission === 'function') {
-    console.log("hi?")
     DeviceMotionEvent.requestPermission()
       .then(permissionState => {
         if (permissionState === 'granted') {
@@ -61,7 +61,6 @@ function doRequest(){
       })
       .catch(console.error);
   } else {
-    console.log("hi? 2")
     window.addEventListener("deviceorientation", updateXY, true);
   }
   document.getElementById('alphaValue').innerHTML = "waiting..."
@@ -75,6 +74,5 @@ function doRequest(){
 window.onclick = function() {
   var noSleep = new NoSleep();
   noSleep.enable()
-
 
 }
