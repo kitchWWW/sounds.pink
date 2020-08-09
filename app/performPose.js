@@ -85,9 +85,57 @@ function modelReady() {
   poseNet.multiPose(video)
 }
 
+function angleBetweenTwoPoints(a,b){
+  angleOfPoints = Math.atan((a.x - b.x) / (a.y - b.y)) *(180/ Math.PI) / 90;
+  if(angleOfPoints > 0){
+    angleOfPoints = 1 - angleOfPoints
+  }else{
+    angleOfPoints = -1*(1+angleOfPoints )
+  }
+  angleOfPoints = (angleOfPoints)*64 + 64
+  return angleOfPoints
+}
+
+function angleBetweenThreePoints(A,B,C) {
+    var AB = Math.sqrt(Math.pow(B.x-A.x,2)+ Math.pow(B.y-A.y,2));    
+    var BC = Math.sqrt(Math.pow(B.x-C.x,2)+ Math.pow(B.y-C.y,2)); 
+    var AC = Math.sqrt(Math.pow(C.x-A.x,2)+ Math.pow(C.y-A.y,2));
+    return Math.acos((BC*BC+AB*AB-AC*AC)/(2*BC*AB)) * (180 / Math.PI) * (127 / 180.0);
+}
+
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
   console.log(poses)
+  if(poses.length > 0){
+    pose = poses[0].pose;
+    console.log(pose);
+    angleOfHead = Math.round(angleBetweenTwoPoints(pose.rightEye, pose.leftEye))
+    angleOfTorso = Math.round(angleBetweenTwoPoints(pose.rightShoulder, pose.leftShoulder))
+    angleOfHips = Math.round(angleBetweenTwoPoints(pose.rightHip, pose.leftHip))
+    rightArmRaised = Math.round(angleBetweenThreePoints(pose.rightWrist,pose.rightShoulder,pose.rightHip))
+    leftArmRaised = Math.round(angleBetweenThreePoints(pose.leftWrist,pose.leftShoulder,pose.leftHip))
+    rightArmOpen = Math.round(angleBetweenThreePoints(pose.rightWrist,pose.rightElbow,pose.rightShoulder))
+    leftArmOpen = Math.round(angleBetweenThreePoints(pose.leftWrist,pose.leftElbow,pose.leftShoulder))
+    rightKneeOpen = Math.round(angleBetweenThreePoints(pose.rightAnkle,pose.rightKnee,pose.rightHip))
+    leftKneeOpen = Math.round(angleBetweenThreePoints(pose.leftAnkle,pose.leftKnee,pose.leftHip))
+
+    pos = {
+      angleOfHead,
+      angleOfTorso,
+      angleOfHips,
+      leftArmRaised,
+      rightArmRaised,
+      rightArmOpen,
+      leftArmOpen,
+      rightKneeOpen,
+      leftKneeOpen,
+    }
+    postData('/dance', {
+      id: CUSTOM_CODE,
+      pos: pos
+    })
+  }
+
   // Loop through all the poses detected
   for (let i = 0; i < poses.length; i++) {
     // For each pose detected, loop through all the keypoints
@@ -95,16 +143,9 @@ function drawKeypoints() {
       let keypoint = poses[i].pose.keypoints[j];
       // Only draw an ellipse is the pose probability is bigger than 0.2
       if (keypoint.score > 0.2) {
-        ctx.beginPath();
-        ctx.arc(keypoint.position.x, keypoint.position.y, 10, 0, 2 * Math.PI);
-        ctx.stroke();
+        RECTSIZE = 5
+        ctx.strokeRect(keypoint.position.x-RECTSIZE, keypoint.position.y-RECTSIZE,RECTSIZE*2,RECTSIZE*2);
       }
     }
-  }
-  if(poses.length>0){
-    postData('/dance', {
-      id: CUSTOM_CODE,
-      pos: poses[0]['pose']
-    })
   }
 }
