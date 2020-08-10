@@ -37,7 +37,6 @@ allPorts = {}
 print(available_ports)
 HAS_VIRTUAL_PORTS = False
 try:
-	10 * (1/0)
 	midiout.open_virtual_port(SOUNDS_PINK)
 	allPorts[SOUNDS_PINK] = midit
 	HAS_VIRTUAL_PORTS = True
