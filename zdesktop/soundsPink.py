@@ -7,6 +7,7 @@ import urllib.parse
 from tkinter import *
 
 SOUNDS_PINK = 'sounds.pink'
+NO_OUT_SELECTED = 'no output selected'
 CUSTOM_CODE_NONE = '[NONE]'
 CUSTOM_CODE_INVALID = '[INVALID]'
 CUSTOM_CODE_CHECKING = '[CHECKING]'
@@ -32,20 +33,28 @@ JSON_STATUS = 'status'
 
 midiout = rtmidi.MidiOut()
 available_ports = midiout.get_ports()
-midiout.open_virtual_port(SOUNDS_PINK)
-# find all availiable output ports and open a connection to all of them
-print(available_ports)
 allPorts = {}
-allPorts[SOUNDS_PINK] = midiout
+print(available_ports)
+HAS_VIRTUAL_PORTS = False
+try:
+	midiout.open_virtual_port(SOUNDS_PINK)
+	allPorts[SOUNDS_PINK] = midiout
+	HAS_VIRTUAL_PORTS = True
+except:
+	print("unable to open virtual port")
+# find all availiable output ports and open a connection to all of them
+allPorts[NO_OUT_SELECTED] = NO_OUT_SELECTED
 if available_ports:
 	for i in range(len(available_ports)):
 		outputPort = rtmidi.MidiOut()
 		outputPort.open_port(i)
 		allPorts[available_ports[i]] = outputPort
 		print(allPorts)
-available_ports.insert(0,SOUNDS_PINK)
 
+available_ports.insert(0,NO_OUT_SELECTED)
 
+if(HAS_VIRTUAL_PORTS):
+	available_ports.insert(0,SOUNDS_PINK)
 
 
 ### THE ACTUAL LOGIC
@@ -118,6 +127,9 @@ def turnJsonIntoMidi(jsonOBJ):
 
 
 def sendMidiData(jsonOBJ):
+	global MIDI_PORT_SELECTED;
+	if(MIDI_PORT_SELECTED == NO_OUT_SELECTED):
+		return;
 	for k in jsonOBJ:
 		updateMessage = [176,jsonOBJ[k]['cc'],jsonOBJ[k]['val']]
 		allPorts[MIDI_PORT_SELECTED].send_message(updateMessage)
@@ -177,9 +189,6 @@ def doMidiStuff():
 				pass
 
 
-
-
-
 ##### UI CODE
 
 OPTIONS = available_ports #etc
@@ -215,7 +224,10 @@ def updateInformLabel():
 	elif(CUSTOM_CODE_IS_VALID[CUSTOM_CODE_ENTERED] == CUSTOM_CODE_INVALID):
 		v.set("Invalid code {0}, please re-enter".format(custom_code_sv.get()))
 	elif(CUSTOM_CODE_IS_VALID[CUSTOM_CODE_ENTERED] == CUSTOM_CODE_VALID):
-		v.set("sending data from {0} to {1}".format(CUSTOM_CODE_ENTERED,MIDI_PORT_SELECTED))
+		if(MIDI_PORT_SELECTED == NO_OUT_SELECTED):
+			v.set("accepting data from {0}, but no out selected".format(CUSTOM_CODE_ENTERED))
+		else:
+			v.set("sending data from {0} to {1}".format(CUSTOM_CODE_ENTERED,MIDI_PORT_SELECTED))
 	else:
 		v.set("you should never see this message.")
 
