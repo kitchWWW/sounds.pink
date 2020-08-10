@@ -38,11 +38,12 @@ print(available_ports)
 HAS_VIRTUAL_PORTS = False
 try:
 	midiout.open_virtual_port(SOUNDS_PINK)
-	allPorts[SOUNDS_PINK] = midit
+	allPorts[SOUNDS_PINK] = midiout
 	HAS_VIRTUAL_PORTS = True
 	MIDI_PORT_SELECTED = SOUNDS_PINK
-except:
+except Error as e:
 	print("unable to open virtual port")
+	print(e)
 # find all availiable output ports and open a connection to all of them
 allPorts[NO_OUT_SELECTED] = NO_OUT_SELECTED
 if available_ports:
