@@ -15,7 +15,7 @@ CUSTOM_CODE_VALID = '[VALID]'
 
 CUSTOM_CODE_ENTERED = CUSTOM_CODE_NONE
 CUSTOM_CODE = CUSTOM_CODE_NONE
-MIDI_PORT_SELECTED = SOUNDS_PINK
+MIDI_PORT_SELECTED = NO_OUT_SELECTED
 
 CUSTOM_CODE_IS_VALID = {}
 
@@ -37,9 +37,11 @@ allPorts = {}
 print(available_ports)
 HAS_VIRTUAL_PORTS = False
 try:
+	10 * (1/0)
 	midiout.open_virtual_port(SOUNDS_PINK)
-	allPorts[SOUNDS_PINK] = midiout
+	allPorts[SOUNDS_PINK] = midit
 	HAS_VIRTUAL_PORTS = True
+	MIDI_PORT_SELECTED = SOUNDS_PINK
 except:
 	print("unable to open virtual port")
 # find all availiable output ports and open a connection to all of them
@@ -154,7 +156,6 @@ def updateMidiTable(jsonOBJ):
 			allMidiTableUpdateLabels[k] = label
 
 		allMidiTableUpdateSVs[k].set("{0} -> cc {1}, currently: {2}".format(k, jsonOBJ[k]['cc'],jsonOBJ[k]['val']))
-		print("wabjdsfkahejf")
 		print(allMidiTableUpdateLabels)
 		allMidiTableUpdateLabels[k].config(fg="black")
 		gridRowToAddAt+=1
@@ -162,8 +163,6 @@ def updateMidiTable(jsonOBJ):
 		if(k not in jsonOBJ):
 			allMidiTableUpdateSVs[k].set('no current data for {0}'.format(k))
 			allMidiTableUpdateLabels[k].config(fg="#AAAAAA")
-
-
 
 
 
