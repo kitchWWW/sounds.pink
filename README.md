@@ -20,8 +20,6 @@ Currently we are in "make it work" mode. (meaning things are still quite broken)
 
 ## todo list:
 
-- Windows support
-- Linux support
 - midi smoothing so the controls don't jump around sporadically. 
 - automatically cleaning up old position files after a user has not messed with it for 24 hours.
 

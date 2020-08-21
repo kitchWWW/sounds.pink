@@ -1,6 +1,6 @@
 // inlets and outlets
 inlets = 1;
-outlets = 1;
+outlets = 2;
 
 
 function anything()
@@ -9,9 +9,11 @@ function anything()
 	try{
 		var b = JSON.parse(a);
 		for(k in b.pos){
-			outlet(0, [k,b.pos[k]]);
+			outlet(1, parseFloat(b.pos[k]));
+			outlet(0, k);
 		}
 	}catch(err){
-		outlet(0, "incomplete_json")
+		outlet(1, 0);
+		outlet(0, "incomplete_json");
 	}
 }

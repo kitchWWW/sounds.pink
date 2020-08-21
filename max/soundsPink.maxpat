@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 79.0, 797.0, 787.0 ],
+		"rect" : [ 34.0, 79.0, 892.0, 787.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,13 +39,26 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
-					"id" : "obj-16",
-					"maxclass" : "message",
+					"id" : "obj-2",
+					"int" : 1,
+					"maxclass" : "gswitch2",
+					"numinlets" : 2,
+					"numoutlets" : 2,
+					"outlettype" : [ "", "" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 105.0, 763.0, 39.0, 32.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-10",
+					"maxclass" : "newobj",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 269.5, 587.0, 29.5, 22.0 ],
-					"text" : "0"
+					"patching_rect" : [ 125.0, 712.0, 57.0, 22.0 ],
+					"text" : "pack s 0."
 				}
 
 			}
@@ -53,11 +66,11 @@
 				"box" : 				{
 					"comment" : "toggle polling on/off",
 					"id" : "obj-74",
-					"index" : 2,
+					"index" : 0,
 					"maxclass" : "inlet",
 					"numinlets" : 0,
 					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
+					"outlettype" : [ "" ],
 					"patching_rect" : [ 313.5, 55.0, 30.0, 30.0 ]
 				}
 
@@ -209,11 +222,11 @@
 				"box" : 				{
 					"comment" : "",
 					"id" : "obj-14",
-					"index" : 1,
+					"index" : 0,
 					"maxclass" : "outlet",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 125.0, 731.0, 30.0, 30.0 ]
+					"patching_rect" : [ 125.0, 835.0, 30.0, 30.0 ]
 				}
 
 			}
@@ -221,7 +234,7 @@
 				"box" : 				{
 					"comment" : "Four character code from website",
 					"id" : "obj-13",
-					"index" : 1,
+					"index" : 0,
 					"maxclass" : "inlet",
 					"numinlets" : 0,
 					"numoutlets" : 1,
@@ -237,7 +250,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 125.0, 278.0, 40.0, 22.0 ]
+					"patching_rect" : [ 125.0, 278.0, 38.0, 22.0 ],
+					"text" : "56BV"
 				}
 
 			}
@@ -281,8 +295,8 @@
 					"id" : "obj-15",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
+					"numoutlets" : 2,
+					"outlettype" : [ "", "" ],
 					"patching_rect" : [ 125.0, 663.0, 125.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"filename" : "soundsPinkScript.js",
@@ -345,6 +359,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-2", 1 ],
+					"source" : [ "obj-10", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-7", 0 ],
 					"order" : 1,
 					"source" : [ "obj-11", 0 ]
@@ -385,16 +406,22 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-14", 0 ],
+					"destination" : [ "obj-10", 1 ],
+					"source" : [ "obj-15", 1 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-10", 0 ],
 					"source" : [ "obj-15", 0 ]
 				}
 
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-8", 0 ],
-					"midpoints" : [ 279.0, 815.0, 71.0, 815.0, 71.0, 501.0, 111.0, 501.0, 111.0, 192.0, 134.5, 192.0 ],
-					"source" : [ "obj-16", 0 ]
+					"destination" : [ "obj-14", 0 ],
+					"source" : [ "obj-2", 1 ]
 				}
 
 			}
@@ -500,16 +527,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-16", 0 ],
-					"order" : 1,
-					"source" : [ "obj-70", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-65", 0 ],
-					"order" : 0,
 					"source" : [ "obj-70", 0 ]
 				}
 
@@ -523,7 +541,17 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-2", 0 ],
+					"midpoints" : [ 134.5, 228.0, 96.0, 228.0, 96.0, 750.0, 114.5, 750.0 ],
+					"order" : 1,
+					"source" : [ "obj-8", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-5", 0 ],
+					"order" : 0,
 					"source" : [ "obj-8", 0 ]
 				}
 
@@ -544,7 +572,16 @@
 				}
 
 			}
- ]
+ ],
+		"dependency_cache" : [ 			{
+				"name" : "soundsPinkScript.js",
+				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
+				"patcherrelativepath" : ".",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+ ],
+		"autosave" : 0
 	}
 
 }

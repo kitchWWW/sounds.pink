@@ -39,6 +39,23 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-6",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 327.0, 494.0, 161.0, 22.0 ],
+					"saved_object_attributes" : 					{
+						"filename" : "soundsPinkDeviceScale.js",
+						"parameter_enable" : 0
+					}
+,
+					"text" : "js soundsPinkDeviceScale.js"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-19",
 					"linecount" : 4,
 					"maxclass" : "comment",
@@ -90,7 +107,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 327.0, 491.0, 65.0, 22.0 ],
+					"patching_rect" : [ 327.0, 530.0, 65.0, 22.0 ],
 					"text" : "print alpha"
 				}
 
@@ -113,7 +130,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 237.0, 491.0, 72.0, 22.0 ],
+					"patching_rect" : [ 237.0, 494.0, 72.0, 22.0 ],
 					"text" : "print neutral"
 				}
 
@@ -136,7 +153,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 118.0, 491.0, 93.0, 22.0 ],
+					"patching_rect" : [ 118.0, 494.0, 93.0, 22.0 ],
 					"text" : "print headAngle"
 				}
 
@@ -267,7 +284,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-12", 0 ],
+					"destination" : [ "obj-6", 0 ],
 					"source" : [ "obj-13", 0 ]
 				}
 
@@ -302,6 +319,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-12", 0 ],
+					"source" : [ "obj-6", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-1", 0 ],
 					"source" : [ "obj-7", 0 ]
 				}
@@ -324,6 +348,13 @@
 			}
 , 			{
 				"name" : "soundsPinkScript.js",
+				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
+				"patcherrelativepath" : ".",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "soundsPinkDeviceScale.js",
 				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
 				"patcherrelativepath" : ".",
 				"type" : "TEXT",
