@@ -12,6 +12,7 @@ A couple of things live in this repo:
    - the stage pages are powered by a combination of ml5js and face-api.js
    - larger files are linked via `res.sounds.pink`, a separate S3 bucket.
 - the **Max/MSP** client is in the max folder. This is a "thin" wrapper that gives you raw data that comes straight from the website.
+   - some example max patches are available under the `examples/max` folder!
 - The **desktop application** is housed under zdesktop. It is a python app using `rtmidi` and `tkinter` for io and GUI components respectively. 
 
 the site is accessible online at [https://sounds.pink](https://sounds.pink)
