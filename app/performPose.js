@@ -122,7 +122,8 @@ function drawKeypoints() {
     leftArmOpen = Math.round(angleBetweenThreePoints(pose.leftWrist, pose.leftElbow, pose.leftShoulder))
     rightKneeOpen = Math.round(angleBetweenThreePoints(pose.rightAnkle, pose.rightKnee, pose.rightHip))
     leftKneeOpen = Math.round(angleBetweenThreePoints(pose.leftAnkle, pose.leftKnee, pose.leftHip))
-
+    rightLegRaised = Math.round(angleBetweenThreePoints(pose.rightAnkle, pose.rightHip, {'x':pose.rightHip.x, 'y':pose.rightHip.y+10}))
+    leftLegRaised = Math.round(angleBetweenThreePoints(pose.leftAnkle, pose.leftHip, {'x':pose.leftHip.x, 'y':pose.leftHip.y+10}))
     pos = {
       angleOfHead,
       angleOfTorso,
@@ -133,6 +134,8 @@ function drawKeypoints() {
       leftArmOpen,
       rightKneeOpen,
       leftKneeOpen,
+      rightLegRaised,
+      leftLegRaised
     }
     postData('/dance', {
       id: CUSTOM_CODE,
