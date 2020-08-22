@@ -1,3 +1,4 @@
+import threading
 from random import randrange
 import time
 import rtmidi
@@ -80,7 +81,6 @@ def fetchJsonFromWeb():
 
 
 def turnJsonIntoMidi(jsonOBJ):
-	print(jsonOBJ)
 	if(jsonOBJ['status'] != HTML_FETCH_STATUS_GOOD):
 		return {'pos':{}}
 	pos = {}
@@ -95,7 +95,6 @@ def turnJsonIntoMidi(jsonOBJ):
 			startingCC+=1
 	elif('alpha' in jsonOBJ['pos']):
 		# then it is emotion one!
-		print(jsonOBJ['pos'])
 		for k in jsonOBJ['pos']:
 			valToUse = abs(jsonOBJ['pos'][k])
 			
@@ -111,7 +110,6 @@ def turnJsonIntoMidi(jsonOBJ):
 			startingCC+=1
 	elif('angleOfHead' in jsonOBJ['pos']):
 		# then it is the pose one, and we do the math on the website.
-		print(jsonOBJ['pos'])
 		for k in jsonOBJ['pos']:
 			valToUse = abs(jsonOBJ['pos'][k])
 			pos[k] = {
@@ -119,7 +117,6 @@ def turnJsonIntoMidi(jsonOBJ):
 				'val':valToUse
 			}
 			startingCC+=1
-	print(pos)
 	return {
 		'status':JSON_PARSE_STATUS_GOOD,
 		'pos': pos
@@ -133,74 +130,92 @@ def sendMidiData(jsonOBJ):
 	if(MIDI_PORT_SELECTED == NO_OUT_SELECTED):
 		return;
 	for k in jsonOBJ:
-		updateMessage = [176,jsonOBJ[k]['cc'],jsonOBJ[k]['val']]
-		allPorts[MIDI_PORT_SELECTED].send_message(updateMessage)
-		time.sleep(0.001)
-
-
-
-
-
-allMidiTableUpdateSVs = {}
-allMidiTableUpdateLabels = {}
-
-gridRowToAddAt = 3
-def updateMidiTable(jsonOBJ):
-	global gridRowToAddAt
-	for k in jsonOBJ:
-		if(not k in allMidiTableUpdateSVs):
-			sv = StringVar()
-			label = Label(master, textvariable=sv)
-			label.grid(row=gridRowToAddAt,columnspan=2)
-			allMidiTableUpdateSVs[k] = sv
-			allMidiTableUpdateLabels[k] = label
-
-		allMidiTableUpdateSVs[k].set("{0} -> cc {1}, currently: {2}".format(k, jsonOBJ[k]['cc'],jsonOBJ[k]['val']))
-		print(allMidiTableUpdateLabels)
-		allMidiTableUpdateLabels[k].config(fg="black")
-		gridRowToAddAt+=1
-	for k in allMidiTableUpdateSVs:
-		if(k not in jsonOBJ):
-			allMidiTableUpdateSVs[k].set('no current data for {0}'.format(k))
-			allMidiTableUpdateLabels[k].config(fg="#AAAAAA")
-
+		shouldSend = True
+		try:
+			if(GLOBAL_allMidiTableUpdateCheckboxValues[k] == 0):
+				shouldSend = False
+		except:
+			pass
+		if(shouldSend):
+			updateMessage = [176,jsonOBJ[k]['cc'],jsonOBJ[k]['val']]
+			allPorts[MIDI_PORT_SELECTED].send_message(updateMessage)
+			time.sleep(0.0001)
 
 
 def doMidiStuff():
 	global CUSTOM_CODE_IS_VALID
 	global CUSTOM_CODE
+	global midiWeAreSending
 	if(CUSTOM_CODE != CUSTOM_CODE_NONE and CUSTOM_CODE != CUSTOM_CODE_INVALID and CUSTOM_CODE_IS_VALID[CUSTOM_CODE] != CUSTOM_CODE_INVALID):
 		if(randrange(20) == 0):
 			ret = fetchJsonFromWeb()
-			print(ret)
 			if(ret['status'] == HTML_FETCH_STATUS_GOOD):
-				print(ret)
 				ret = turnJsonIntoMidi(ret)
 				CUSTOM_CODE_IS_VALID[CUSTOM_CODE] = CUSTOM_CODE_VALID
-				updateInformLabel()
 				sendMidiData(ret['pos'])
-				updateMidiTable(ret['pos'])
+				midiWeAreSending = ret['pos'];
 			elif(str(ret['status']).startswith('HTTP Error 404:')):
 				CUSTOM_CODE_IS_VALID[CUSTOM_CODE] = CUSTOM_CODE_INVALID
-				updateInformLabel()
 			else:
 				# probably is just a JSON parsing error from reading while the server was writing. try again later.
 				pass
 
+def doMidiLoop():
+	while 1:
+		doMidiStuff()
+
 
 ##### UI CODE
 
+
 OPTIONS = available_ports #etc
+
+
+GLOBAL_allMidiTableUpdateCheckboxValues = {}
+
+allMidiTableUpdateSVs = {}
+allMidiTableUpdateLabels = {}
+allMidiTableUpdateCVs = {}
+allMidiTableUpdateCBs = {}
+gridRowToAddAt = 3
+midiWeAreSending = {}
+
+def updateMidiTable(master):
+	global gridRowToAddAt
+	global midiWeAreSending
+	global GLOBAL_allMidiTableUpdateCheckboxValues
+	for k in midiWeAreSending:
+		if(not k in allMidiTableUpdateSVs):
+			sv = StringVar()
+			cv = IntVar()
+			label = Label(master, textvariable=sv)
+			label.grid(row=gridRowToAddAt,column=1)
+			checkbutton = Checkbutton(master, text = '', variable = cv, \
+				 onvalue = 1, offvalue = 0)
+			checkbutton.grid(row=gridRowToAddAt,column=0)
+			checkbutton.select()
+			allMidiTableUpdateSVs[k] = sv
+			allMidiTableUpdateCVs[k] = cv
+			allMidiTableUpdateLabels[k] = label
+			allMidiTableUpdateCBs[k] = checkbutton
+
+		allMidiTableUpdateSVs[k].set("{0} -> cc {1}, currently: {2}".format(k, midiWeAreSending[k]['cc'],midiWeAreSending[k]['val']))
+		allMidiTableUpdateLabels[k].config(fg="black")
+		GLOBAL_allMidiTableUpdateCheckboxValues[k] = allMidiTableUpdateCVs[k].get()
+		gridRowToAddAt+=1
+
+	for k in allMidiTableUpdateSVs:
+		if(k not in midiWeAreSending):
+			allMidiTableUpdateSVs[k].set('no current data for {0}'.format(k))
+			allMidiTableUpdateLabels[k].config(fg="#AAAAAA")
 
 def doClose():
 	print("closing!")
 
-def updateInformLabel():
+def updateInformLabel(master):
 	global CUSTOM_CODE
 	global CUSTOM_CODE_IS_VALID
 	global MIDI_PORT_SELECTED
-
-	print(custom_code_sv.get())
 	
 	CUSTOM_CODE_ENTERED = custom_code_sv.get()
 	
@@ -212,9 +227,6 @@ def updateInformLabel():
 		CUSTOM_CODE_IS_VALID[CUSTOM_CODE_ENTERED] = CUSTOM_CODE_INVALID
 	else:
 		CUSTOM_CODE = CUSTOM_CODE_ENTERED;
-
-	print(CUSTOM_CODE_ENTERED),
-	print(MIDI_PORT_SELECTED)
 
 	if(CUSTOM_CODE == CUSTOM_CODE_NONE or CUSTOM_CODE == CUSTOM_CODE_INVALID):
 		v.set("Please enter a 4 digit custom code")	
@@ -234,70 +246,58 @@ def updateInformLabel():
 
 def OptionMenu_SelectionEvent(event):
 	global MIDI_PORT_SELECTED
-	print("wow changing to the new thing")
 	print(event);
 	MIDI_PORT_SELECTED = event
-	updateInformLabel()
-	## do something
-	pass
-
-
-
-
-master = Tk()
-master.title("sounds.pink")
-custom_code_sv = StringVar()
-v = StringVar()
-
 
 def UpdateCustomCode(self, *args):
+	global midiWeAreSending
 	CUSTOM_CODE_IS_VALID[custom_code_sv.get()] = CUSTOM_CODE_CHECKING
-	updateInformLabel()
-	updateMidiTable({})
+	print(custom_code_sv.get())
+	midiWeAreSending = {}
 	return True
 
+custom_code_sv = None 
+v = None
 
+def threadmain():
+	global custom_code_sv
+	global v
+	master = Tk()
+	master.title("sounds.pink")
+	custom_code_sv = StringVar()
+	v = StringVar()
 
-label0 = Label(master, text="midi output:").grid(row=0)
-label1 = Label(master, text="custom code:").grid(row=1)
-label2 = Label(master, textvariable=v).grid(row=2,columnspan=2)
+	label0 = Label(master, text="midi output:").grid(row=0)
+	label1 = Label(master, text="custom code:").grid(row=1)
+	label2 = Label(master, textvariable=v).grid(row=2,columnspan=2)
 
+	custom_code_sv.trace_add("write", UpdateCustomCode)
 
+	variable = StringVar(master)
+	variable.set(OPTIONS[0]) # default value
+	e = Entry(master, textvariable=custom_code_sv, validate="focusout", validatecommand=UpdateCustomCode)
+	e.grid(row=1,column=1)
 
-custom_code_sv.trace_add("write", UpdateCustomCode)
+	w = OptionMenu(master, variable, *OPTIONS, command=OptionMenu_SelectionEvent)
+	w.grid(row=0,column=1)
 
+	master.bind_all("<Control-q>", doClose)
 
+	updateInformLabel(master)
 
+	new_thread = threading.Thread(target=doMidiLoop)
+	new_thread.start()
 
-
-
-
-variable = StringVar(master)
-variable.set(OPTIONS[0]) # default value
-e = Entry(master, textvariable=custom_code_sv, validate="focusout", validatecommand=UpdateCustomCode)
-e.grid(row=1,column=1)
-
-w = OptionMenu(master, variable, *OPTIONS, command=OptionMenu_SelectionEvent)
-w.grid(row=0,column=1)
-
-master.bind_all("<Control-q>", doClose)
-
-updateInformLabel()
-
-while True:
-	doMidiStuff()
-	master.update_idletasks()
-	master.update()
-
-
-
-
-
-
-
+	while True:
+		updateInformLabel(master)
+		updateMidiTable(master)
+		master.update_idletasks()
+		master.update()
 
 
 
+if __name__ == '__main__':
+	threadmain()
 
 
 
