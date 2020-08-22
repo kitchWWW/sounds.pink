@@ -160,8 +160,10 @@ def doMidiStuff():
 				# probably is just a JSON parsing error from reading while the server was writing. try again later.
 				pass
 
+canDoMidiLoop = True
 def doMidiLoop():
-	while 1:
+	global canDoMidiLoop
+	while canDoMidiLoop:
 		doMidiStuff()
 
 
@@ -211,6 +213,11 @@ def updateMidiTable(master):
 
 def doClose():
 	print("closing!")
+	global master
+	global canDoMidiLoop
+	canDoMidiLoop = False
+	master.destroy()
+
 
 def updateInformLabel(master):
 	global CUSTOM_CODE
@@ -258,10 +265,12 @@ def UpdateCustomCode(self, *args):
 
 custom_code_sv = None 
 v = None
+master = None
 
 def threadmain():
 	global custom_code_sv
 	global v
+	global master
 	master = Tk()
 	master.title("sounds.pink")
 	custom_code_sv = StringVar()
@@ -282,6 +291,7 @@ def threadmain():
 	w.grid(row=0,column=1)
 
 	master.bind_all("<Control-q>", doClose)
+	master.protocol("WM_DELETE_WINDOW", doClose)
 
 	updateInformLabel(master)
 
