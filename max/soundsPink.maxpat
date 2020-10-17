@@ -41,7 +41,7 @@
 				"box" : 				{
 					"comment" : "",
 					"id" : "obj-17",
-					"index" : 2,
+					"index" : 0,
 					"maxclass" : "outlet",
 					"numinlets" : 1,
 					"numoutlets" : 0,
@@ -54,8 +54,8 @@
 					"id" : "obj-16",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
+					"numoutlets" : 2,
+					"outlettype" : [ "", "" ],
 					"patching_rect" : [ 275.0, 663.0, 145.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"filename" : "soundsPinkRawOSC.js",
@@ -572,11 +572,11 @@
 				"box" : 				{
 					"comment" : "toggle polling on/off",
 					"id" : "obj-74",
-					"index" : 2,
+					"index" : 0,
 					"maxclass" : "inlet",
 					"numinlets" : 0,
 					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
+					"outlettype" : [ "" ],
 					"patching_rect" : [ 313.5, 55.0, 30.0, 30.0 ]
 				}
 
@@ -695,8 +695,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 125.0, 316.0, 316.0, 22.0 ],
-					"text" : "sprintf get http://localhost:3000/positions/position_%s.json"
+					"patching_rect" : [ 125.0, 316.0, 309.0, 22.0 ],
+					"text" : "sprintf get https://sounds.pink/positions/position_%s.json"
 				}
 
 			}
@@ -728,7 +728,7 @@
 				"box" : 				{
 					"comment" : "",
 					"id" : "obj-14",
-					"index" : 1,
+					"index" : 0,
 					"maxclass" : "outlet",
 					"numinlets" : 1,
 					"numoutlets" : 0,
@@ -740,7 +740,7 @@
 				"box" : 				{
 					"comment" : "Four character code from website",
 					"id" : "obj-13",
-					"index" : 1,
+					"index" : 0,
 					"maxclass" : "inlet",
 					"numinlets" : 0,
 					"numoutlets" : 1,
@@ -1082,7 +1082,23 @@
 				}
 
 			}
- ]
+ ],
+		"dependency_cache" : [ 			{
+				"name" : "soundsPinkScript.js",
+				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
+				"patcherrelativepath" : ".",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "soundsPinkRawOSC.js",
+				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
+				"patcherrelativepath" : ".",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+ ],
+		"autosave" : 0
 	}
 
 }
