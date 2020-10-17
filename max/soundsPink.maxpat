@@ -39,6 +39,35 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"comment" : "",
+					"id" : "obj-17",
+					"index" : 2,
+					"maxclass" : "outlet",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 260.0, 827.0, 30.0, 30.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-16",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 275.0, 663.0, 145.0, 22.0 ],
+					"saved_object_attributes" : 					{
+						"filename" : "soundsPinkRawOSC.js",
+						"parameter_enable" : 0
+					}
+,
+					"text" : "js soundsPinkRawOSC.js"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-18",
 					"maxclass" : "comment",
 					"numinlets" : 1,
@@ -518,7 +547,6 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-2",
-					"int" : 1,
 					"maxclass" : "gswitch2",
 					"numinlets" : 2,
 					"numoutlets" : 2,
@@ -667,8 +695,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 125.0, 316.0, 309.0, 22.0 ],
-					"text" : "sprintf get https://sounds.pink/positions/position_%s.json"
+					"patching_rect" : [ 125.0, 316.0, 316.0, 22.0 ],
+					"text" : "sprintf get http://localhost:3000/positions/position_%s.json"
 				}
 
 			}
@@ -729,7 +757,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 125.0, 278.0, 167.0, 22.0 ],
-					"text" : "KB6S"
+					"text" : "L4G5"
 				}
 
 			}
@@ -879,6 +907,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-17", 0 ],
+					"source" : [ "obj-16", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-14", 0 ],
 					"source" : [ "obj-2", 1 ]
 				}
@@ -929,6 +964,15 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-15", 0 ],
+					"order" : 1,
+					"source" : [ "obj-52", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-16", 0 ],
+					"order" : 0,
 					"source" : [ "obj-52", 0 ]
 				}
 

@@ -135,12 +135,31 @@ function drawKeypoints() {
       rightKneeOpen,
       leftKneeOpen,
       rightLegRaised,
-      leftLegRaised,
-      raw: pose
+      leftLegRaised
+    }
+    rawData = {
+      nose: pose.nose,
+      leftEye: pose.leftEye,
+      rightEye: pose.rightEye,
+      leftEar: pose.leftEar,
+      rightEar: pose.rightEar,
+      leftShoulder: pose.leftShoulder,
+      rightShoulder: pose.rightShoulder,
+      leftElbow: pose.leftElbow,
+      rightElbow: pose.rightElbow,
+      leftWrist: pose.leftWrist,
+      rightWrist: pose.rightWrist,
+      leftHip: pose.leftHip,
+      rightHip: pose.rightHip,
+      leftKnee: pose.leftKnee,
+      rightKnee: pose.rightKnee,
+      leftAnkle: pose.leftAnkle,      
+      rightAnkle: pose.rightAnkle
     }
     postData('/dance', {
       id: CUSTOM_CODE,
-      pos: pos
+      pos: pos,
+      raw: rawData
     })
     updateCustomCodeDisplay();
     // For each pose detected, loop through all the keypoints

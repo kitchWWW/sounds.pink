@@ -102,12 +102,12 @@ video.addEventListener("playing", () => {
     console.log(resizedDetections);
 
     var posToSend = resizedDetections[0]['expressions']
-    posToSend['raw'] = resizedDetections[0]
 
     if (resizedDetections.length > 0) {
       postData('/dance', {
         id: CUSTOM_CODE,
-        pos: posToSend
+        pos: posToSend,
+        raw: resizedDetections[0]
       })
       updateCustomCodeDisplay(resizedDetections);
     }

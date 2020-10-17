@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 79.0, 994.0, 787.0 ],
+		"rect" : [ 34.0, 79.0, 533.0, 787.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,6 +39,29 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-18",
+					"maxclass" : "gswitch2",
+					"numinlets" : 2,
+					"numoutlets" : 2,
+					"outlettype" : [ "", "" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 38.0, 499.0, 39.0, 32.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-14",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 35.0, 572.0, 55.0, 22.0 ],
+					"text" : "print raw"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-22",
 					"linecount" : 4,
 					"maxclass" : "comment",
@@ -56,7 +79,7 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 342.0, 479.0, 150.0, 60.0 ],
+					"patching_rect" : [ 342.0, 479.0, 151.0, 60.0 ],
 					"text" : "there is a helper patcher here that will filter out so you only get one bang per emotion"
 				}
 
@@ -227,7 +250,7 @@
 					"outlettype" : [ "", "int", "", "" ],
 					"parameter_enable" : 0,
 					"patching_rect" : [ 168.0, 257.0, 100.0, 50.0 ],
-					"text" : "EETY"
+					"text" : "KKKZ"
 				}
 
 			}
@@ -260,8 +283,8 @@
 					"id" : "obj-1",
 					"maxclass" : "newobj",
 					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
+					"numoutlets" : 2,
+					"outlettype" : [ "", "" ],
 					"patching_rect" : [ 118.0, 395.0, 71.0, 22.0 ],
 					"text" : "soundsPink"
 				}
@@ -292,6 +315,13 @@
 					"destination" : [ "obj-13", 0 ],
 					"order" : 0,
 					"source" : [ "obj-1", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-18", 1 ],
+					"source" : [ "obj-1", 1 ]
 				}
 
 			}
@@ -341,6 +371,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-14", 0 ],
+					"source" : [ "obj-18", 1 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-5", 0 ],
 					"source" : [ "obj-3", 0 ]
 				}
@@ -384,6 +421,13 @@
 			}
 , 			{
 				"name" : "soundsPinkScript.js",
+				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
+				"patcherrelativepath" : ".",
+				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "soundsPinkRawOSC.js",
 				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
 				"patcherrelativepath" : ".",
 				"type" : "TEXT",

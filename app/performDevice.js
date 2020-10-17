@@ -38,8 +38,8 @@ function updateXY(event) {
       alpha,
       beta,
       gamma,
-      raw: event
-    }
+    },
+    raw: event
   })
   console.log(response)
   updateCustomCodeDisplay();
