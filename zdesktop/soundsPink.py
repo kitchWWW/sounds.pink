@@ -13,6 +13,7 @@ CUSTOM_CODE_NONE = '[NONE]'
 CUSTOM_CODE_INVALID = '[INVALID]'
 CUSTOM_CODE_CHECKING = '[CHECKING]'
 CUSTOM_CODE_VALID = '[VALID]'
+SERVER = 'http://localhost:3000'
 
 CUSTOM_CODE_ENTERED = CUSTOM_CODE_NONE
 CUSTOM_CODE = CUSTOM_CODE_NONE
@@ -67,7 +68,7 @@ def fetchJsonFromWeb():
 	if(CUSTOM_CODE == CUSTOM_CODE_NONE):
 		return {'status':HTML_FETCH_STATUS_BAD}
 	try:
-		url = 'https://sounds.pink/positions/position_{0}.json'.format(CUSTOM_CODE)
+		url = SERVER + '/positions/position_{0}.json'.format(CUSTOM_CODE)
 		f = urllib.request.urlopen(url)
 		res = f.read().decode('utf-8')
 		payloadData = json.loads(res)
@@ -85,38 +86,46 @@ def turnJsonIntoMidi(jsonOBJ):
 		return {'pos':{}}
 	pos = {}
 	startingCC = 14
+	if('raw' in jsonOBJ['pos']):
+		# we dont need to do stuff with raw in midi.
+		del jsonOBJ['pos']['raw']
 	if('neutral' in jsonOBJ['pos']):
 		# then it is emotion one!
 		for k in jsonOBJ['pos']:
-			pos[k] = {
-				'cc':startingCC,
-				'val':round(jsonOBJ['pos'][k]*127,0)
-			}
-			startingCC+=1
+			try:
+				pos[k] = {
+					'cc':startingCC,
+					'val':round(jsonOBJ['pos'][k]*127,0)
+				}
+				startingCC+=1
+			except Exception as e: print(e)
 	elif('alpha' in jsonOBJ['pos']):
 		# then it is emotion one!
 		for k in jsonOBJ['pos']:
-			valToUse = abs(jsonOBJ['pos'][k])
-			
-			while valToUse > 180:
-				valToUse = valToUse - 180;
-			while valToUse > 90:
-				valToUse = valToUse - 90;
-			valToUse = round((valToUse / 90.0) * 127)
-			pos[k] = {
-				'cc':startingCC,
-				'val':valToUse
-			}
-			startingCC+=1
+			try:
+				valToUse = abs(jsonOBJ['pos'][k])
+				while valToUse > 180:
+					valToUse = valToUse - 180;
+				while valToUse > 90:
+					valToUse = valToUse - 90;
+				valToUse = round((valToUse / 90.0) * 127)
+				pos[k] = {
+					'cc':startingCC,
+					'val':valToUse
+				}
+				startingCC+=1
+			except Exception as e: print(e)
 	elif('angleOfHead' in jsonOBJ['pos']):
 		# then it is the pose one, and we do the math on the website.
 		for k in jsonOBJ['pos']:
-			valToUse = abs(jsonOBJ['pos'][k])
-			pos[k] = {
-				'cc':startingCC,
-				'val':valToUse
-			}
-			startingCC+=1
+			try:
+				valToUse = abs(jsonOBJ['pos'][k])
+				pos[k] = {
+					'cc':startingCC,
+					'val':valToUse
+				}
+				startingCC+=1
+			except Exception as e: print(e)
 	return {
 		'status':JSON_PARSE_STATUS_GOOD,
 		'pos': pos
