@@ -30,8 +30,28 @@ async function postData(url = '', data = {}) {
 
 
 var CUSTOM_CODE = getUrlVars()['code']
-function updateCustomCodeDisplay(){
+
+function updateCustomCodeDisplay(resizedDetections) {
   document.getElementById('customCode').innerHTML = CUSTOM_CODE
+  var emotions = ['neutral', 'angry', 'surprised', 'sad', 'happy', 'fearful', 'disgusted']
+  var indexofMaxEmotion = 0
+  for (var i = 0; i < 7; i++) {
+    if (resizedDetections[0]['expressions'][emotions[i]] >
+      resizedDetections[0]['expressions'][emotions[indexofMaxEmotion]]) {
+      indexofMaxEmotion = i
+    }
+  }
+  for (var i = 0; i < 7; i++) {
+    console.log(emotions[i])
+    var domEmotion = document.getElementById(emotions[i])
+    domEmotion.innerHTML = (resizedDetections[0]['expressions'][emotions[i]] * 100).toFixed(2)
+    if (i == indexofMaxEmotion) {
+      domEmotion.style.backgroundColor = "pink"
+    } else {
+      domEmotion.style.backgroundColor = "white"
+    }
+  }
+
 }
 
 
@@ -81,12 +101,15 @@ video.addEventListener("playing", () => {
 
     console.log(resizedDetections);
 
+    var posToSend = resizedDetections[0]['expressions']
+    posToSend['raw'] = resizedDetections[0]
+
     if (resizedDetections.length > 0) {
       postData('/dance', {
         id: CUSTOM_CODE,
-        pos: resizedDetections[0]['expressions']
+        pos: posToSend
       })
-      updateCustomCodeDisplay();
+      updateCustomCodeDisplay(resizedDetections);
     }
   }, 50);
 });

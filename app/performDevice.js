@@ -38,6 +38,7 @@ function updateXY(event) {
       alpha,
       beta,
       gamma,
+      raw: event
     }
   })
   console.log(response)

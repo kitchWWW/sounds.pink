@@ -135,7 +135,8 @@ function drawKeypoints() {
       rightKneeOpen,
       leftKneeOpen,
       rightLegRaised,
-      leftLegRaised
+      leftLegRaised,
+      raw: pose
     }
     postData('/dance', {
       id: CUSTOM_CODE,

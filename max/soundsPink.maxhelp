@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 79.0, 797.0, 787.0 ],
+		"rect" : [ 34.0, 79.0, 994.0, 787.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,12 +39,71 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-22",
+					"linecount" : 4,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 654.0, 452.0, 150.0, 60.0 ],
+					"text" : "an this function scales alpha / beta / gamma values into useful scaled features"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-20",
+					"linecount" : 4,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 342.0, 479.0, 150.0, 60.0 ],
+					"text" : "there is a helper patcher here that will filter out so you only get one bang per emotion"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-17",
+					"linecount" : 2,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 134.0, 506.0, 150.0, 33.0 ],
+					"text" : "this is how you get data for pose"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-11",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 332.0, 572.0, 97.0, 22.0 ],
+					"text" : "print allEmotions"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-10",
+					"maxclass" : "newobj",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 332.0, 536.0, 147.0, 22.0 ],
+					"text" : "soundsPinkEmotionSorter"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-6",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 327.0, 494.0, 161.0, 22.0 ],
+					"patching_rect" : [ 578.0, 526.0, 161.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"filename" : "soundsPinkDeviceScale.js",
 						"parameter_enable" : 0
@@ -107,7 +166,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 327.0, 530.0, 65.0, 22.0 ],
+					"patching_rect" : [ 578.0, 562.0, 65.0, 22.0 ],
 					"text" : "print alpha"
 				}
 
@@ -119,31 +178,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 327.0, 458.0, 69.0, 22.0 ],
+					"patching_rect" : [ 578.0, 490.0, 69.0, 22.0 ],
 					"text" : "route alpha"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-10",
-					"maxclass" : "newobj",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 237.0, 494.0, 72.0, 22.0 ],
-					"text" : "print neutral"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-11",
-					"maxclass" : "newobj",
-					"numinlets" : 2,
-					"numoutlets" : 2,
-					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 237.0, 458.0, 76.0, 22.0 ],
-					"text" : "route neutral"
 				}
 
 			}
@@ -153,7 +189,7 @@
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 118.0, 494.0, 93.0, 22.0 ],
+					"patching_rect" : [ 118.0, 572.0, 93.0, 22.0 ],
 					"text" : "print headAngle"
 				}
 
@@ -165,7 +201,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 118.0, 458.0, 110.0, 22.0 ],
+					"patching_rect" : [ 118.0, 536.0, 110.0, 22.0 ],
 					"text" : "route angleOfHead"
 				}
 
@@ -191,7 +227,7 @@
 					"outlettype" : [ "", "int", "", "" ],
 					"parameter_enable" : 0,
 					"patching_rect" : [ 168.0, 257.0, 100.0, 50.0 ],
-					"text" : "JTDP"
+					"text" : "EETY"
 				}
 
 			}
@@ -245,7 +281,7 @@
  ],
 		"lines" : [ 			{
 				"patchline" : 				{
-					"destination" : [ "obj-11", 0 ],
+					"destination" : [ "obj-10", 0 ],
 					"order" : 1,
 					"source" : [ "obj-1", 0 ]
 				}
@@ -277,8 +313,8 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-10", 0 ],
-					"source" : [ "obj-11", 0 ]
+					"destination" : [ "obj-11", 0 ],
+					"source" : [ "obj-10", 0 ]
 				}
 
 			}
@@ -358,6 +394,13 @@
 				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
 				"patcherrelativepath" : ".",
 				"type" : "TEXT",
+				"implicit" : 1
+			}
+, 			{
+				"name" : "soundsPinkEmotionSorter.maxpat",
+				"bootpath" : "~/Documents/cs/memeWebs/sounds.pink/max",
+				"patcherrelativepath" : ".",
+				"type" : "JSON",
 				"implicit" : 1
 			}
  ],

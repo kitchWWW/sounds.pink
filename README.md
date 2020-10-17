@@ -1,5 +1,5 @@
 # sounds.pink
-### turn motion into midi
+### turn motion into music
 
 ## overview of product
 sounds.pink is a pipeline for harnessing AI to allow you to translate movement, emotions, and device orientation into midi control data. It consists of a web site ([sounds.pink](https://sounds.pink)) that takes your position inputs, and a desktop application that contacts the server and outputs this data as midi information.
