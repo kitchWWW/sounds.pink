@@ -126,6 +126,14 @@ var server = http.createServer(function(request, response) {
         response.end();
       })
       return;
+    }else if (request.url.startsWith("/newFingersStage")) {
+      getCustomCode(function(code) {
+        response.writeHead(307, {
+          Location: '/performFingers.html?code='+code
+        });
+        response.end();
+      })
+      return;
     }else if (request.url.startsWith("/newDeviceStage")) {
       getCustomCode(function(code) {
         response.writeHead(307, {

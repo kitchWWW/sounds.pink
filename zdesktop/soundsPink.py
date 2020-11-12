@@ -13,7 +13,7 @@ CUSTOM_CODE_NONE = '[NONE]'
 CUSTOM_CODE_INVALID = '[INVALID]'
 CUSTOM_CODE_CHECKING = '[CHECKING]'
 CUSTOM_CODE_VALID = '[VALID]'
-SERVER = 'https://sounds.pink'
+SERVER = 'http://sounds.pink'
 
 CUSTOM_CODE_ENTERED = CUSTOM_CODE_NONE
 CUSTOM_CODE = CUSTOM_CODE_NONE
@@ -78,6 +78,8 @@ def fetchJsonFromWeb():
 		payloadData['status']=HTML_FETCH_STATUS_GOOD
 		return payloadData
 	except Exception as e:
+		print("exception from fetchJsonFromWeb:")
+		print(e)
 		return {'status':str(e)}
 
 
@@ -115,8 +117,8 @@ def turnJsonIntoMidi(jsonOBJ):
 				}
 				startingCC+=1
 			except Exception as e: print(e)
-	elif('angleOfHead' in jsonOBJ['pos']):
-		# then it is the pose one, and we do the math on the website.
+	else:
+		# then it is the pose one or finger, and we do the math on the website.
 		for k in jsonOBJ['pos']:
 			try:
 				valToUse = abs(jsonOBJ['pos'][k])
@@ -166,7 +168,8 @@ def doMidiStuff():
 			elif(str(ret['status']).startswith('HTTP Error 404:')):
 				CUSTOM_CODE_IS_VALID[CUSTOM_CODE] = CUSTOM_CODE_INVALID
 			else:
-				# probably is just a JSON parsing error from reading while the server was writing. try again later.
+				print("non-standard return")
+				print(ret)
 				pass
 
 canDoMidiLoop = True
