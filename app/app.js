@@ -5,8 +5,6 @@ var http = require("http"),
 port = process.env.PORT || 3000;
 
 
-var formidable = require('formidable');
-
 const runSpawn = require('child_process').spawn;
 
 String.prototype.replaceAll = function(search, replacement) {

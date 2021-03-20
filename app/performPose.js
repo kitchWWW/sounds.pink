@@ -61,6 +61,35 @@ if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
   });
 }
 
+
+
+if (navigator.requestMIDIAccess) {
+    console.log('This browser supports WebMIDI!');
+} else {
+    console.log('WebMIDI is not supported in this browser.');
+}
+
+
+WebMidi.enable(function(err) {
+	console.log("once?")   
+ });
+
+function sendCC(chan,val,name){
+	try{
+		WebMidi.outputs[0].sendControlChange(chan,Math.floor(val*128.0))
+	}catch(e){
+		console.log("sending midi data error")
+		console.log(e)
+	}
+}
+
+
+
+
+
+
+
+
 // A function to draw the video and poses into the canvas.
 // This function is independent of the result of posenet
 // This way the video will not seem slow if poseNet 
@@ -109,21 +138,54 @@ function angleBetweenThreePoints(A, B, C) {
 
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
-  console.log(poses)
+  // console.log(poses)
   if (poses.length > 0) {
     pose = poses[0].pose;
-    console.log(pose);
-    angleOfHead = Math.round(angleBetweenTwoPoints(pose.rightEye, pose.leftEye))
-    angleOfTorso = Math.round(angleBetweenTwoPoints(pose.rightShoulder, pose.leftShoulder))
-    angleOfHips = Math.round(angleBetweenTwoPoints(pose.rightHip, pose.leftHip))
-    rightArmRaised = Math.round(angleBetweenThreePoints(pose.rightWrist, pose.rightShoulder, pose.rightHip))
-    leftArmRaised = Math.round(angleBetweenThreePoints(pose.leftWrist, pose.leftShoulder, pose.leftHip))
-    rightArmOpen = Math.round(angleBetweenThreePoints(pose.rightWrist, pose.rightElbow, pose.rightShoulder))
-    leftArmOpen = Math.round(angleBetweenThreePoints(pose.leftWrist, pose.leftElbow, pose.leftShoulder))
-    rightKneeOpen = Math.round(angleBetweenThreePoints(pose.rightAnkle, pose.rightKnee, pose.rightHip))
-    leftKneeOpen = Math.round(angleBetweenThreePoints(pose.leftAnkle, pose.leftKnee, pose.leftHip))
-    rightLegRaised = Math.round(angleBetweenThreePoints(pose.rightAnkle, pose.rightHip, {'x':pose.rightHip.x, 'y':pose.rightHip.y+10}))
-    leftLegRaised = Math.round(angleBetweenThreePoints(pose.leftAnkle, pose.leftHip, {'x':pose.leftHip.x, 'y':pose.leftHip.y+10}))
+    // console.log(pose);
+    angleOfHead = angleBetweenTwoPoints(pose.rightEye, pose.leftEye)
+    sendCC(12,angleOfHead / 180.0, "angleOfHead")
+    angleOfHead = Math.round(angleOfHead)
+
+    angleOfTorso = angleBetweenTwoPoints(pose.rightShoulder, pose.leftShoulder)
+    sendCC(13,angleOfTorso / 180.0, "angleOfHead")
+    angleOfTorso = Math.round(angleOfTorso)
+    
+    angleOfHips = angleBetweenTwoPoints(pose.rightHip, pose.leftHip)
+    sendCC(14,angleOfHips / 180.0, "angleOfHead")
+    angleOfHips = Math.round(angleOfHips)
+    
+    rightArmRaised = angleBetweenThreePoints(pose.rightWrist, pose.rightShoulder, pose.rightHip)
+    sendCC(15,rightArmRaised / 180.0, "angleOfHead")
+    rightArmRaised = Math.round(rightArmRaised)
+    
+    leftArmRaised = angleBetweenThreePoints(pose.leftWrist, pose.leftShoulder, pose.leftHip)
+    sendCC(16,leftArmRaised / 180.0, "angleOfHead")
+    leftArmRaised = Math.round(leftArmRaised)
+    
+    rightArmOpen = angleBetweenThreePoints(pose.rightWrist, pose.rightElbow, pose.rightShoulder)
+    sendCC(17,rightArmOpen / 180.0, "angleOfHead")
+    rightArmOpen = Math.round(rightArmOpen)
+    
+    leftArmOpen = angleBetweenThreePoints(pose.leftWrist, pose.leftElbow, pose.leftShoulder)
+    sendCC(18,leftArmOpen / 180.0, "angleOfHead")
+    leftArmOpen = Math.round(leftArmOpen)
+    
+    rightKneeOpen = angleBetweenThreePoints(pose.rightAnkle, pose.rightKnee, pose.rightHip)
+    sendCC(19,rightKneeOpen / 180.0, "angleOfHead")
+    rightKneeOpen = Math.round(rightKneeOpen)
+    
+    leftKneeOpen = angleBetweenThreePoints(pose.leftAnkle, pose.leftKnee, pose.leftHip)
+    sendCC(20,leftKneeOpen / 180.0, "angleOfHead")
+    leftKneeOpen = Math.round(leftKneeOpen)
+    
+    rightLegRaised = angleBetweenThreePoints(pose.rightAnkle, pose.rightHip, {'x':pose.rightHip.x, 'y':pose.rightHip.y+10})
+    sendCC(21,rightLegRaised / 180.0, "angleOfHead")
+    rightLegRaised = Math.round(rightLegRaised)
+    
+    leftLegRaised = angleBetweenThreePoints(pose.leftAnkle, pose.leftHip, {'x':pose.leftHip.x, 'y':pose.leftHip.y+10})
+    sendCC(22,leftLegRaised / 180.0, "angleOfHead")
+    leftLegRaised = Math.round(leftLegRaised)
+    
     pos = {
       angleOfHead,
       angleOfTorso,
@@ -137,6 +199,7 @@ function drawKeypoints() {
       rightLegRaised,
       leftLegRaised
     }
+	console.log(pos);
     rawData = {
       nose: pose.nose,
       leftEye: pose.leftEye,
