@@ -24,8 +24,13 @@ async function postData(url = '', data = {}) {
   return await response.json(); // parses JSON response into native JavaScript objects
 }
 
-
+var lastTime = Date.now()
 function updateXY(event) {
+  var newTime = Date.now()
+  if(newTime - lastTime < 300){
+    return;
+  }
+  lastTime = newTime;
   var alpha = event.alpha.toFixed(2);
   var beta = event.beta.toFixed(2);
   var gamma = event.gamma.toFixed(2);

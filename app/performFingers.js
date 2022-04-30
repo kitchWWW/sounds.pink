@@ -27,50 +27,51 @@ async function postData(url = '', data = {}) {
 
 var CUSTOM_CODE = getUrlVars()['code']
 var isFirstRun = true
-function updateCustomCodeDisplay(){
+
+function updateCustomCodeDisplay() {
   document.getElementById('customCode').innerHTML = CUSTOM_CODE
 }
 
-window.onclick = function() {
-  var noSleep = new NoSleep();
-  noSleep.enable()
-}
+// window.onclick = function() {
+//   var noSleep = new NoSleep();
+//   noSleep.enable()
+// }
 
-function processFingerCurl(curlStr){
-  if(curlStr=='No Curl'){
+function processFingerCurl(curlStr) {
+  if (curlStr == 'No Curl') {
     return 0
   }
-  if(curlStr=='Half Curl'){
+  if (curlStr == 'Half Curl') {
     return 64
   }
-  if(curlStr=='Full Curl'){
+  if (curlStr == 'Full Curl') {
     return 127
   }
 }
 
-function processFingerDirection(curlStr){
-  if(curlStr=='Vertical Down'){
+function processFingerDirection(curlStr) {
+  if (curlStr == 'Vertical Down') {
     return 0
   }
-  if(curlStr=='Diagonal Down Left'){
+  if (curlStr == 'Diagonal Down Left') {
     return 18
   }
-  if(curlStr=='Horizontal Left'){
+  if (curlStr == 'Horizontal Left') {
     return 36
   }
-  if(curlStr=='Diagonal Up Left'){
+  if (curlStr == 'Diagonal Up Left') {
     return 54
   }
-  if(curlStr=='Vertical Up'){
+  if (curlStr == 'Vertical Up') {
     return 72
   }
-  if(curlStr=='Diagonal Up Right'){
+  if (curlStr == 'Diagonal Up Right') {
     return 90
   }
-  if(curlStr=='Horizontal Right'){
+  if (curlStr == 'Horizontal Right') {
     return 108
   }
-  if(curlStr=='Diagonal Down Right'){
+  if (curlStr == 'Diagonal Down Right') {
     return 127
   }
 }
@@ -99,13 +100,10 @@ const gestureStrings = {
 };
 
 async function main() {
-
   const video = document.querySelector("#pose-video");
   const canvas = document.querySelector("#pose-canvas");
   const ctx = canvas.getContext("2d");
-
   const resultLayer = document.querySelector("#pose-result");
-
   // configure gesture estimator
   const knownGestures = [
     // pass on these for now
@@ -113,14 +111,13 @@ async function main() {
     // fp.Gestures.ThumbsUpGesture
   ];
   const GE = new fp.GestureEstimator(knownGestures);
-
   // load handpose model
   const model = await handpose.load();
   console.log("Handpose model loaded");
 
   // main estimation loop
   const estimateHands = async () => {
-    if(isFirstRun){
+    if (isFirstRun) {
       document.getElementById('customCode').innerHTML = '[waiting for hand...]'
       isFirstRun = false
     }
@@ -157,15 +154,13 @@ async function main() {
         resultLayer.innerText = gestureStrings[result.name];
       }
 
-
-
       // ******************* AND NOW MY CODE
 
       posData = est.poseData
       pos = {}
-      for(i = 0; i < posData.length; i++){
-        pos[posData[i][0]+'Curl'] = processFingerCurl(posData[i][1])
-        pos[posData[i][0]+'Dir'] = processFingerDirection(posData[i][2])
+      for (i = 0; i < posData.length; i++) {
+        pos[posData[i][0] + 'Curl'] = processFingerCurl(posData[i][1])
+        pos[posData[i][0] + 'Dir'] = processFingerDirection(posData[i][2])
       }
       console.log(pos)
       response = postData('/dance', {
@@ -192,17 +187,27 @@ async function main() {
 }
 
 async function initCamera(width, height, fps) {
-
-  const constraints = {
-    audio: false,
-    video: {
-      facingMode: "user",
+  var videoConstraints = {
+    width: width,
+    height: height,
+    frameRate: {
+      max: fps
+    }
+  }
+  if (myPreferredCameraDeviceId != null) {
+    var videoConstraints = {
+      deviceId: myPreferredCameraDeviceId,
       width: width,
       height: height,
       frameRate: {
         max: fps
       }
     }
+
+  }
+  const constraints = {
+    audio: false,
+    video: videoConstraints
   };
 
   const video = document.querySelector("#pose-video");
@@ -227,8 +232,8 @@ function drawPoint(ctx, x, y, r, color) {
   ctx.fill();
 }
 
-window.addEventListener("DOMContentLoaded", () => {
 
+function doBigInit() {
   initCamera(
     config.video.width, config.video.height, config.video.fps
   ).then(video => {
@@ -238,9 +243,34 @@ window.addEventListener("DOMContentLoaded", () => {
       main();
     });
   });
-
   const canvas = document.querySelector("#pose-canvas");
   canvas.width = config.video.width;
   canvas.height = config.video.height;
   console.log("Canvas initialized");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  doBigInit();
+});
+
+
+var myPreferredCameraDeviceId = null
+function updateSelectedCamera(event) {
+  var select = document.getElementById('videoSource')
+  myPreferredCameraDeviceId = select.options[select.selectedIndex].value
+  console.log(myPreferredCameraDeviceId)
+  doBigInit()
+}
+
+
+navigator.mediaDevices.enumerateDevices().then(function(devices) {
+  for (var i = 0; i < devices.length; i++) {
+    var device = devices[i];
+    if (device.kind === 'videoinput') {
+      var option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || 'camera ' + (i + 1);
+      document.getElementById('videoSource').appendChild(option);
+    }
+  };
 });

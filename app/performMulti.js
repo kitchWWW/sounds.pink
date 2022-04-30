@@ -92,29 +92,17 @@ if (navigator.requestMIDIAccess) {
 
 WebMidi.enable(function(err) {
   console.log("once?")
-  console.log(WebMidi.outputs);
-  var outs = WebMidi.outputs;
-  var select = document.getElementById('outMode')
-  for (var i = 0; i<outs.length; i++){
-      var opt = document.createElement('option');
-      opt.value = i;
-      opt.innerHTML = outs[i].name;
-      select.appendChild(opt);
-  }
+  console.log(WebMidi.outputs)
 });
 
 function sendCC(chan, val, name) {
   try {
-    if(outputMode != "web"){
-      WebMidi.outputs[outputMode].sendControlChange(chan, Math.floor(val * 128.0))
-    }
+    WebMidi.outputs[0].sendControlChange(chan, Math.floor(val * 128.0))
   } catch (e) {
     console.log("sending midi data error")
     console.log(e)
   }
 }
-
-
 
 // A function to draw the video and poses into the canvas.
 // This function is independent of the result of posenet
@@ -138,7 +126,6 @@ function initPosenet() {
   poseNet.on('pose', gotPoses);
 }
 initPosenet()
-
 
 // A function that gets called every time there's an update from the model
 function gotPoses(results) {
@@ -173,120 +160,39 @@ function drawKeypoints() {
   // console.log(poses)
   if (poses.length > 0) {
     pose = poses[0].pose;
-    // console.log(pose);
-    angleOfHead = angleBetweenTwoPoints(pose.rightEye, pose.leftEye)
-    sendCC(12, angleOfHead / 180.0, "angleOfHead")
-    angleOfHead = Math.round(angleOfHead)
+    pos = {}
+    rawData = {}
+    for (var i = 0; i < poses.length; i++) {
+      keypoint1 = poses[i].pose.rightShoulder
+      keypoint2 = poses[i].pose.leftShoulder
 
-    angleOfTorso = angleBetweenTwoPoints(pose.rightShoulder, pose.leftShoulder)
-    sendCC(13, angleOfTorso / 180.0, "angleOfHead")
-    angleOfTorso = Math.round(angleOfTorso)
+      console.log(poses[i])
 
-    angleOfHips = angleBetweenTwoPoints(pose.rightHip, pose.leftHip)
-    sendCC(14, angleOfHips / 180.0, "angleOfHead")
-    angleOfHips = Math.round(angleOfHips)
-
-    rightArmRaised = angleBetweenThreePoints(pose.rightWrist, pose.rightShoulder, pose.rightHip)
-    sendCC(15, rightArmRaised / 180.0, "angleOfHead")
-    rightArmRaised = Math.round(rightArmRaised)
-
-    leftArmRaised = angleBetweenThreePoints(pose.leftWrist, pose.leftShoulder, pose.leftHip)
-    sendCC(16, leftArmRaised / 180.0, "angleOfHead")
-    leftArmRaised = Math.round(leftArmRaised)
-
-    rightArmOpen = angleBetweenThreePoints(pose.rightWrist, pose.rightElbow, pose.rightShoulder)
-    sendCC(17, rightArmOpen / 180.0, "angleOfHead")
-    rightArmOpen = Math.round(rightArmOpen)
-
-    leftArmOpen = angleBetweenThreePoints(pose.leftWrist, pose.leftElbow, pose.leftShoulder)
-    sendCC(18, leftArmOpen / 180.0, "angleOfHead")
-    leftArmOpen = Math.round(leftArmOpen)
-
-    rightKneeOpen = angleBetweenThreePoints(pose.rightAnkle, pose.rightKnee, pose.rightHip)
-    sendCC(19, rightKneeOpen / 180.0, "angleOfHead")
-    rightKneeOpen = Math.round(rightKneeOpen)
-
-    leftKneeOpen = angleBetweenThreePoints(pose.leftAnkle, pose.leftKnee, pose.leftHip)
-    sendCC(20, leftKneeOpen / 180.0, "angleOfHead")
-    leftKneeOpen = Math.round(leftKneeOpen)
-
-    rightLegRaised = angleBetweenThreePoints(pose.rightAnkle, pose.rightHip, {
-      'x': pose.rightHip.x,
-      'y': pose.rightHip.y + 10
-    })
-    sendCC(21, rightLegRaised / 180.0, "angleOfHead")
-    rightLegRaised = Math.round(rightLegRaised)
-
-    leftLegRaised = angleBetweenThreePoints(pose.leftAnkle, pose.leftHip, {
-      'x': pose.leftHip.x,
-      'y': pose.leftHip.y + 10
-    })
-    sendCC(22, leftLegRaised / 180.0, "angleOfHead")
-    leftLegRaised = Math.round(leftLegRaised)
-
-    pos = {
-      angleOfHead,
-      angleOfTorso,
-      angleOfHips,
-      leftArmRaised,
-      rightArmRaised,
-      rightArmOpen,
-      leftArmOpen,
-      rightKneeOpen,
-      leftKneeOpen,
-      rightLegRaised,
-      leftLegRaised
-    }
-    console.log(pos);
-    rawData = {
-      nose: pose.nose,
-      leftEye: pose.leftEye,
-      rightEye: pose.rightEye,
-      leftEar: pose.leftEar,
-      rightEar: pose.rightEar,
-      leftShoulder: pose.leftShoulder,
-      rightShoulder: pose.rightShoulder,
-      leftElbow: pose.leftElbow,
-      rightElbow: pose.rightElbow,
-      leftWrist: pose.leftWrist,
-      rightWrist: pose.rightWrist,
-      leftHip: pose.leftHip,
-      rightHip: pose.rightHip,
-      leftKnee: pose.leftKnee,
-      rightKnee: pose.rightKnee,
-      leftAnkle: pose.leftAnkle,
-      rightAnkle: pose.rightAnkle
-    }
-    if(outputMode== "web"){
-      postData('/dance', {
-        id: CUSTOM_CODE,
-        pos: pos,
-        raw: rawData
-      })      
-    }
-    updateCustomCodeDisplay();
-    // For each pose detected, loop through all the keypoints
-    for (let j = 0; j < pose.keypoints.length; j++) {
-      let keypoint = pose.keypoints[j];
-      // Only draw an ellipse is the pose probability is bigger than 0.2
-      if (keypoint.score > 0.2) {
-        ctx.strokeRect(keypoint.position.x - RECTSIZE, keypoint.position.y - RECTSIZE, RECTSIZE * 2, RECTSIZE * 2);
+      var keypoint = {
+        x: (keypoint1.x + keypoint2.x) / 2,
+        y: (keypoint1.y + keypoint2.y) / 2,
+        confidence: Math.min(keypoint1.confidence, keypoint2.confidence)
       }
+
+      pos["" + i+"x"] = keypoint.x
+      pos["" + i+"y"] = keypoint.y
+      rawData["" + i] = poses[i]
+      ctx.strokeRect(keypoint.x - RECTSIZE, keypoint.y - RECTSIZE, RECTSIZE * 2, RECTSIZE * 2);
     }
+    postData('/dance', {
+      id: CUSTOM_CODE,
+      pos: pos,
+      raw: rawData
+    })
+    updateCustomCodeDisplay();
   }
 }
 
-
 function updateSelectedCamera(event) {
-  var newCameraId = document.getElementById('videoSource').value
-  myPreferredCameraDeviceId = newCameraId
+  var select = document.getElementById('videoSource')
+  myPreferredCameraDeviceId = select.options[select.selectedIndex].value
+  console.log(myPreferredCameraDeviceId)
   updateUserMedia()
-}
-
-var outputMode = 'web'
-function updateOutMode(event) {
-  var newCameraId = document.getElementById('outMode').value
-  outputMode = newCameraId
 }
 
 

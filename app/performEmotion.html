@@ -22,24 +22,24 @@
         <h1><a href="/" class="titleLink">sounds.<span class="titlePink">pink</span></a> | EMOTION | code: <span id="customCode">[loading...]</span></h1>
     <video id="video" height="480" width="640" autoplay muted></video>
     <div class="medParagraphContent">
+        <br>
+        <br>
+        <select name="videoSource" id="videoSource" onchange="updateSelectedCamera()">
+            <option value="" disabled selected>Select camera</option>
+        </select>
+        <br>
         <table>
-            <tr><td>
-                Angry:</td> <td> <span id="angry"></span></td></tr>
-                <tr><td>    Disgusted: </td> <td><span id="disgusted"></span></td></tr>
-                
-                <tr><td>Fearful:</td> <td> <span id="fearful"></span></td></tr>
-                
-                <tr><td>Happy:</td> <td> <span id="happy"></span></td></tr>
-                
-                <tr><td>Neutral: </td> <td><span id="neutral"></span></td></tr>
-                
-                <tr><td>Sad: </td> <td><span id="sad"></span><br/></td></tr>
-                
-                <tr><td>Surprised:</td> <td> <span id="surprised"></span></td></tr>
-            </table>
-        </div>
-        </center>
-        <script src="js/face-api.min.js"></script>
-        <script src="js/main.js"></script>
-    </body>
+            <tr><td>Angry:</td> <td> <span id="angry"></span></td></tr>
+            <tr><td>Disgusted: </td> <td><span id="disgusted"></span></td></tr>
+            <tr><td>Fearful:</td> <td> <span id="fearful"></span></td></tr>
+            <tr><td>Happy:</td> <td> <span id="happy"></span></td></tr>
+            <tr><td>Neutral: </td> <td><span id="neutral"></span></td></tr>
+            <tr><td>Sad: </td> <td><span id="sad"></span><br/></td></tr>
+            <tr><td>Surprised:</td> <td> <span id="surprised"></span></td></tr>
+        </table>
+    </div>
+    </center>
+    <script src="js/face-api.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
 </html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-US"  xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:fb="http://ogp.me/ns/fb#">
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+	<!--    <script src="angular.min.js"></script> -->
+	<script src="./piz.js"></script>
+	<!--    <script src="pizzicato.min.js"></script> -->
+	<script src="./NoSleep.js"></script>
+	<link href="https://fonts.googleapis.com/css?family=Lato&display=swap" rel="stylesheet">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta property="og:image" content="raquelsmol.jpg" />
+	<title>Someone's Moon</title>
+	<link href="style.css" rel="stylesheet">
+	<body style="font-family: 'Lato', sans-serif;">
+		<div ng-app="myApp" ng-controller="myCtrl">
+			<div class="row">
+				<div class="content">
+					<center>
+					<div class="column" style="background-color:#1F7A8C;">
+						<i>Someone's Moon</i>
+						<br>
+						Unheard-of Ensemble
+					</div>
+					<br><br>
+					<br>
+					<button ng-click="onClickSection()" style="background-color:#7DD1F4;" class="block">{{buttonLabel}}</button>
+					</center>
+					<div class="row">
+						<div class="column" style="background-color:rgb(252, 252, 255); color:#1F7A8C">
+							Hi! You'll be moving your phone around to make music with the ensemble! We'll need to ask for some orientation data, so if you can say "yes", that would be awesome. Follow the instructions they give, and good luck!
+						</div>
+					</div>
+					<br>
+					<center>
+					<div class="row">
+						<div class="column" style="background-color:#1F7A8C;">
+							experience by <a href="http://www.brianellissound.com" target="_blank">Brian Ellis</a>
+						</div>
+					</div>
+					<br>
+					</center>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script src="./home.js"></script>
+</html>

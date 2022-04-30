@@ -18,7 +18,7 @@
 	</head>
 	<body>
 		<center>
-		<h1><a href="/" class="titleLink">sounds.<span class="titlePink">pink</span></a> | POSE | code: <span id="customCode">[loading...]</span></h1>
+		<h1><a href="/" class="titleLink">sounds.<span class="titlePink">pink</span></a> | MULTI | code: <span id="customCode">[loading...]</span></h1>
 		<canvas id="canvas" width="640" height="480"></canvas>
 	<video id="video" width="640" height="480" autoplay style="display: none"></video>
 	<br>
@@ -26,11 +26,8 @@
 	<select name="videoSource" id="videoSource" onchange="updateSelectedCamera()">
 		<option value="" disabled selected>Select camera</option>
 	</select>
-	<select name="outMode" id="outMode" onchange="updateOutMode()">
-		<option value="web" selected>web connection</option>
-	</select>
 	</center>
 	<script src="https://cdn.jsdelivr.net/npm/webmidi@2.5.1"></script>
-	<script src="performPose.js"></script>
+	<script src="performMulti.js"></script>
 </body>
 </html>

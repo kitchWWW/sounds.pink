@@ -108,39 +108,67 @@ var server = http.createServer(function(request, response) {
   console.log(request.method);
   console.log(request.url);
   if (request.method === "GET") {
-    if (request.url.startsWith("/newPoseStage")) {
+    if (request.url.startsWith("/getStages")) {
+      var completeURL = request.url;
+      var ids = completeURL.split("?ids=")[1].split(",")
+      console.log(ids);
+      allThings = {}
+      ids.forEach(element =>{
+        try{
+          const data = JSON.parse(fs.readFileSync('positions/position_'+element+'.json', 'utf8'));
+          console.log(data)
+          allThings[element] = data;
+        }catch{
+          console.log(element+" does not exist!");
+        }
+      })
+      response.writeHead(200, {
+        'content-type': 'text/plain'
+      });
+      response.write(JSON.stringify(allThings));
+      response.end();
+      return;
+    }else if (request.url.startsWith("/newPoseStage")) {
       getCustomCode(function(code) {
         response.writeHead(307, {
-          Location: '/performPose.html?code='+code
+          Location: '/performPose.html?code=' + code
         });
         response.end();
       })
       return;
-    }else if (request.url.startsWith("/newEmotionStage")) {
+    }else if (request.url.startsWith("/newMultiStage")) {
       getCustomCode(function(code) {
         response.writeHead(307, {
-          Location: '/performEmotion.html?code='+code
+          Location: '/performMulti.html?code=' + code
         });
         response.end();
       })
       return;
-    }else if (request.url.startsWith("/newFingersStage")) {
+    } else if (request.url.startsWith("/newEmotionStage")) {
       getCustomCode(function(code) {
         response.writeHead(307, {
-          Location: '/performFingers.html?code='+code
+          Location: '/performEmotion.html?code=' + code
         });
         response.end();
       })
       return;
-    }else if (request.url.startsWith("/newDeviceStage")) {
+    } else if (request.url.startsWith("/newFingersStage")) {
       getCustomCode(function(code) {
         response.writeHead(307, {
-          Location: '/performDevice.html?code='+code
+          Location: '/performFingers.html?code=' + code
         });
         response.end();
       })
       return;
-    }else if (request.url.startsWith("/getCustomCode")) {
+    } else if (request.url.startsWith("/newDeviceStage")) {
+      getCustomCode(function(code) {
+        response.writeHead(307, {
+          Location: '/performDevice.html?code=' + code
+        });
+        response.end();
+      })
+      return;
+    } else if (request.url.startsWith("/getCustomCode")) {
       getCustomCode(function(code) {
         response.writeHead(200, {
           'content-type': 'text/plain'
@@ -218,6 +246,63 @@ var server = http.createServer(function(request, response) {
         response.write("{}");
         response.end();
         return;
+      });
+    } else if (request.url === "/someonesMoonPost") {
+      console.log('someones moon update recieved.');
+      var requestBody = '';
+      request.on('data', function(data) {
+        requestBody += data;
+        if (requestBody.length > 1e7) {
+          response.writeHead(413, 'Request Entity Too Large', {
+            'Content-Type': 'text/html'
+          });
+          response.end('<!doctype html><html><head><title>413</title></head><body>413: Request Entity Too Large</body></html>');
+        }
+      });
+      request.on('end', function() {
+        var data = JSON.parse(requestBody);
+        console.log(data)
+        let rawdata = fs.readFileSync('SomeonesMoon/responses.json');
+        let responses = JSON.parse(rawdata);
+        var d = new Date();
+        var currTimeInMilis = d.getTime();
+        data['timestamp'] = currTimeInMilis
+        responses['id-' + data['uniqueID']] = data;
+        for (r in responses) {
+          if (r.startsWith("id-")) {
+            if (Math.abs(currTimeInMilis - responses[r]['timestamp']) > (2000)) { // more than three seconds old? gone.
+              delete responses[r]
+            }
+          }
+        }
+        fs.writeFileSync('SomeonesMoon/responses.json', JSON.stringify(responses));
+        response.writeHead(200, {
+          "Content-Type": "text/plain"
+        });
+        response.write('got it!');
+        response.end();
+      });
+    } else if (request.url === "/someonesMoonContext") {
+      console.log('someones moon CONTEXT update recieved.');
+      var requestBody = '';
+      request.on('data', function(data) {
+        requestBody += data;
+        if (requestBody.length > 1e7) {
+          response.writeHead(413, 'Request Entity Too Large', {
+            'Content-Type': 'text/html'
+          });
+          response.end('<!doctype html><html><head><title>413</title></head><body>413: Request Entity Too Large</body></html>');
+        }
+      });
+      request.on('end', function() {
+        var data = JSON.parse(requestBody);
+        console.log(data)
+        fs.writeFileSync('SomeonesMoon/context.json', JSON.stringify(data));
+        response.writeHead(200, {
+          "Content-Type": "text/plain"
+        });
+        response.write('got it!');
+        response.end();
       });
     } else {
       response.writeHead(404, 'Resource Not Found', {

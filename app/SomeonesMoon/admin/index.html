@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+<center>
+<h1>Someones Moon</h1>
+<h2>Projections Remote Control</h2>
+
+<button onclick="myFunction(0)">PLANETS</button>
+<br><br>
+<button onclick="myFunction(1)">TRACE</button>
+<br><br>
+<button onclick="myFunction(2)">QR-CODE</button>
+<br><br>
+<button onclick="myFunction(3)">AUTO</button>
+</center>
+
+<script>
+
+context = {}
+
+
+
+function myFunction(status) {
+  if(status == 0){
+    context['section'] = "SECTION_ORBITS"
+  }
+  if(status == 1){
+    context['section'] = "SECTION_TRACES"
+  }
+  if(status == 2){
+    context['section'] = "SECTION_QR_CODE"
+  }
+  // if(status == 3){
+  //   context['section'] = "SECTION_ORBITS"
+  // }
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/someonesMoonContext", true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(JSON.stringify(context));
+}
+</script>
+
+</body>
+</html>

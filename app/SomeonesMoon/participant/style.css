@@ -1,0 +1,58 @@
+body{
+background-color: rgb(252, 252, 255);
+padding-top: 10px;
+padding-right: 20px;
+padding-bottom: 20px;
+padding-left: 20px;
+font-size: 26px;
+}
+.block {
+display: block;
+width: 100%;
+border: none;
+color: rgb(252, 252, 255);
+padding: 10px;
+font-size: 46px;
+cursor: pointer;
+text-align: center;
+border-radius: 25px;
+outline: none;
+max-width: 600px;
+}
+a {
+color: rgb(125, 209, 244);
+}
+.center {
+text-align: center;
+list-style-position: inside;
+}
+/* Create three equal columns that floats next to each other */
+.column {
+float: left;
+width: 100%;
+padding: 10px;
+border-radius: 25px;
+box-sizing: border-box;
+color: rgb(252, 252, 255);
+}
+.content {
+margin: auto;
+max-width: 600px;
+padding: 10px;
+}
+button{
+	padding: 0;
+}
+/* Clear floats after the columns */
+.row:after {
+content: "";
+display: table;
+clear: both;
+}
+/* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 600px) {
+.column {
+width: 100%;
+box-sizing: border-box;
+}
+}

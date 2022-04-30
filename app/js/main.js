@@ -67,16 +67,35 @@ Promise.all([
   faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
   faceapi.nets.faceExpressionNet.loadFromUri("/models"),
   faceapi.nets.ageGenderNet.loadFromUri("/models")
-]).then(startVideo);
+]).then(enableStartVideo);
+
+var startedYet = false
+function enableStartVideo(){
+  startedYet = true
+  startVideo()
+}
 
 function startVideo() {
-  navigator.getUserMedia({
-      video: {}
-    },
+  if(!startedYet){
+    return
+  }
+  var constraints = {
+    video: true
+  }
+  if (myPreferredCameraDeviceId != null) {
+    constraints = {
+      video: {
+        deviceId: myPreferredCameraDeviceId
+      }
+    }
+  }
+  navigator.getUserMedia(constraints,
     stream => (video.srcObject = stream),
     err => console.error(err)
   );
 }
+
+var intervalToClear = null;
 
 video.addEventListener("playing", () => {
   const canvas = faceapi.createCanvasFromMedia(video);
@@ -87,8 +106,10 @@ video.addEventListener("playing", () => {
     height: video.height
   };
   faceapi.matchDimensions(canvas, displaySize);
-
-  setInterval(async () => {
+  if(intervalToClear != null){
+    clearInterval(intervalToClear)
+  }
+  intervalToClear = setInterval(async () => {
     const detections = await faceapi
       .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
@@ -100,10 +121,8 @@ video.addEventListener("playing", () => {
     canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
 
     console.log(resizedDetections);
-
-    var posToSend = resizedDetections[0]['expressions']
-
     if (resizedDetections.length > 0) {
+      var posToSend = resizedDetections[0]['expressions']
       postData('/dance', {
         id: CUSTOM_CODE,
         pos: posToSend,
@@ -120,3 +139,26 @@ function interpolateAgePredictions(age) {
     predictedAges.reduce((total, a) => total + a) / predictedAges.length;
   return avgPredictedAge;
 }
+
+
+var myPreferredCameraDeviceId = null
+
+function updateSelectedCamera(event) {
+  var select = document.getElementById('videoSource')
+  myPreferredCameraDeviceId = select.options[select.selectedIndex].value
+  console.log(myPreferredCameraDeviceId)
+  startVideo()
+}
+
+
+navigator.mediaDevices.enumerateDevices().then(function(devices) {
+  for (var i = 0; i < devices.length; i++) {
+    var device = devices[i];
+    if (device.kind === 'videoinput') {
+      var option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || 'camera ' + (i + 1);
+      document.getElementById('videoSource').appendChild(option);
+    }
+  };
+});
