@@ -42,6 +42,12 @@ var CUSTOM_CODE = getUrlVars()['code']
 
 function updateCustomCodeDisplay() {
   document.getElementById('customCode').innerHTML = CUSTOM_CODE
+
+  for (const [key, value] of Object.entries(allCCLabels)) {
+    // console.log(`${key}: ${value}`);
+    document.getElementById(key+"Label").innerHTML = value
+  }
+
 }
 
 
@@ -103,10 +109,13 @@ WebMidi.enable(function(err) {
   }
 });
 
+var allCCLabels = {}
+
 function sendCC(chan, val, name) {
   try {
     if(outputMode != "web"){
       WebMidi.outputs[outputMode].sendControlChange(chan, Math.floor(val * 128.0))
+      allCCLabels[chan] = name
     }
   } catch (e) {
     console.log("sending midi data error")
@@ -179,49 +188,49 @@ function drawKeypoints() {
     angleOfHead = Math.round(angleOfHead)
 
     angleOfTorso = angleBetweenTwoPoints(pose.rightShoulder, pose.leftShoulder)
-    sendCC(13, angleOfTorso / 180.0, "angleOfHead")
+    sendCC(13, angleOfTorso / 180.0, "angleOfTorso")
     angleOfTorso = Math.round(angleOfTorso)
 
     angleOfHips = angleBetweenTwoPoints(pose.rightHip, pose.leftHip)
-    sendCC(14, angleOfHips / 180.0, "angleOfHead")
+    sendCC(14, angleOfHips / 180.0, "angleOfHips")
     angleOfHips = Math.round(angleOfHips)
 
     rightArmRaised = angleBetweenThreePoints(pose.rightWrist, pose.rightShoulder, pose.rightHip)
-    sendCC(15, rightArmRaised / 180.0, "angleOfHead")
+    sendCC(15, rightArmRaised / 180.0, "rightArmRaised")
     rightArmRaised = Math.round(rightArmRaised)
 
     leftArmRaised = angleBetweenThreePoints(pose.leftWrist, pose.leftShoulder, pose.leftHip)
-    sendCC(16, leftArmRaised / 180.0, "angleOfHead")
+    sendCC(16, leftArmRaised / 180.0, "leftArmRaised")
     leftArmRaised = Math.round(leftArmRaised)
 
     rightArmOpen = angleBetweenThreePoints(pose.rightWrist, pose.rightElbow, pose.rightShoulder)
-    sendCC(17, rightArmOpen / 180.0, "angleOfHead")
+    sendCC(17, rightArmOpen / 180.0, "rightArmOpen")
     rightArmOpen = Math.round(rightArmOpen)
 
     leftArmOpen = angleBetweenThreePoints(pose.leftWrist, pose.leftElbow, pose.leftShoulder)
-    sendCC(18, leftArmOpen / 180.0, "angleOfHead")
+    sendCC(18, leftArmOpen / 180.0, "leftArmOpen")
     leftArmOpen = Math.round(leftArmOpen)
 
     rightKneeOpen = angleBetweenThreePoints(pose.rightAnkle, pose.rightKnee, pose.rightHip)
-    sendCC(19, rightKneeOpen / 180.0, "angleOfHead")
+    sendCC(19, rightKneeOpen / 180.0, "rightKneeOpen")
     rightKneeOpen = Math.round(rightKneeOpen)
 
     leftKneeOpen = angleBetweenThreePoints(pose.leftAnkle, pose.leftKnee, pose.leftHip)
-    sendCC(20, leftKneeOpen / 180.0, "angleOfHead")
+    sendCC(20, leftKneeOpen / 180.0, "leftKneeOpen")
     leftKneeOpen = Math.round(leftKneeOpen)
 
     rightLegRaised = angleBetweenThreePoints(pose.rightAnkle, pose.rightHip, {
       'x': pose.rightHip.x,
       'y': pose.rightHip.y + 10
     })
-    sendCC(21, rightLegRaised / 180.0, "angleOfHead")
+    sendCC(21, rightLegRaised / 180.0, "rightLegRaised")
     rightLegRaised = Math.round(rightLegRaised)
 
     leftLegRaised = angleBetweenThreePoints(pose.leftAnkle, pose.leftHip, {
       'x': pose.leftHip.x,
       'y': pose.leftHip.y + 10
     })
-    sendCC(22, leftLegRaised / 180.0, "angleOfHead")
+    sendCC(22, leftLegRaised / 180.0, "leftLegRaised")
     leftLegRaised = Math.round(leftLegRaised)
 
     pos = {
@@ -287,8 +296,13 @@ var outputMode = 'web'
 function updateOutMode(event) {
   var newCameraId = document.getElementById('outMode').value
   outputMode = newCameraId
+  if(outputMode == 'web'){
+    document.getElementById('midiOutDisplay').style.display="none"
+  }else{    
+    document.getElementById('midiOutDisplay').style.display="block"
+  }
 }
-
+updateOutMode()
 
 navigator.mediaDevices.enumerateDevices().then(function(devices) {
   for (var i = 0; i < devices.length; i++) {
