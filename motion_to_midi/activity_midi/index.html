@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>motion into midi</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+</script>
+<body>
+
+  <div class="container">
+    <div class="col1" id="col1">
+      <div id="wholeThingMaybe" style="position: relative;">
+        <video id="webcam" style="width: 1280px; height: 720px;pointer-events: none; position: abso" autoplay playsinline></video>
+        <canvas class="output_canvas" id="output_canvas" width="1280" height="720" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"></canvas>
+      </div>
+    </div>
+    <div class="col2">
+     <div class="markerArea">
+      <b>motion-into-midi.com</b> <i>by Brian Ellis</i>
+    </div>
+    <div class="markerArea">
+      <div>
+        <button id="webcamButton" style="display:block">ENABLE WEBCAM</button>
+        <select id="cameraSelect" style="display:none"></select>
+        <button id="enableMidi">ENABLE MIDI</button>
+        <select id="midiOutputDevices" style="display: none;"></select>
+      </div>
+      <div class="error" id="midiError">Hi! No Midi devices were found.<br><a href="https://youtu.be/sJPXtpR6VFI?si=i0a2Xv4TtrxDeUpo" target="_blank">Set up a virtual midi device</a>, <br>then refresh this page</div>
+      debug:<input type="checkbox" id="debugOn">
+      <br>
+      Smoothing:<input type="range" min="1" max="10" value="3" class="slider" id="smoothingSlider">
+      <br>
+      <!-- <button id="fullscreenButton">fullscreen</button> -->
+    </div>
+    <div class="rowSmall">
+      <div class="LargeSection">
+        <b>Spatial Boxes</b> &nbsp; <span id="spatialBoxesContentShowHide" class="showHide">hide</span>
+        <div id="spatialBoxesContent" class="rowSmall">
+          <div class="columnSmall">
+            Active Body Markers:
+            <div id="bodyMarkerList">
+            </div>
+          </div>
+          <div class="columnSmall">
+            <span class="prelab">
+            width:</span>
+            <input type="text" id="widthTextBox">
+            <br>
+            <span class="prelab">
+            height:</span>
+            <input type="text" id="heightTextBox">
+            <br>
+            <br>
+            Active Boxes:
+            <div id="boxesList">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rowSmall">
+      <div class="LargeSection">
+        <b>Activity Sensor</b> &nbsp; <span id="activityContentShowHide" class="showHide">hide</span>
+        <div id="activityContent" class="rowSmall">
+          <div class="columnSmall">
+            <div id="bodyMarkerListActivity">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rowSmall">
+      <div class="LargeSection">
+        <b>X/Y Data</b> &nbsp; <span id="xyContextShowHide" class="showHide">hide</span>
+        <div id="xyContext" >
+          <div id="bodyMarkerListXY">
+          </div>
+        </div>
+      </div>
+    </div>
+    <br><br>
+
+
+
+    
+  </div>
+</div>
+
+<script type="module" src="./core.js"></script>
+</body>
+</html>
