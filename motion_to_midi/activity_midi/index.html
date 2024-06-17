@@ -28,10 +28,14 @@
         <select id="midiOutputDevices" style="display: none;"></select>
       </div>
       <div class="error" id="midiError">Hi! No Midi devices were found.<br><a href="https://youtu.be/sJPXtpR6VFI?si=i0a2Xv4TtrxDeUpo" target="_blank">Set up a virtual midi device</a>, <br>then refresh this page</div>
-      debug:<input type="checkbox" id="debugOn">
-      <br>
+      <div style="display:none">debug:<input type="checkbox" id="debugOn"></div>
       Smoothing:<input type="range" min="1" max="10" value="3" class="slider" id="smoothingSlider">
       <br>
+      UI Settings: <select name="colorSelector" id="colorSelector">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+        <!-- <option value="colorful">Colorful</option> -->
+      </select>
       <!-- <button id="fullscreenButton">fullscreen</button> -->
     </div>
     <div class="rowSmall">
@@ -75,10 +79,21 @@
 
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>X/Y Data</b> &nbsp; <span id="xyContextShowHide" class="showHide">hide</span>
-        <div id="xyContext" >
+        <b>X/Y Data</b> &nbsp; <span id="xyContentShowHide" class="showHide">hide</span>
+        <div id="xyContent" >
           <div id="bodyMarkerListXY">
           </div>
+        </div>
+      </div>
+    </div>
+    <div class="rowSmall">
+      <div class="LargeSection">
+        <b>Angle</b> &nbsp; <span id="angleContentShowHide" class="showHide">hide</span>
+        <div id="angleContent" >
+          <div id="angleUIList">
+            
+          </div>
+          <button id="addNewAngleButton">add new angle</button>
         </div>
       </div>
     </div>
