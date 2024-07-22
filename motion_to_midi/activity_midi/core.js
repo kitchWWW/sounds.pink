@@ -9,6 +9,9 @@ Angles:
  - XXX DONE display it
  - XXX DONE show a little fancy arc of the angle being measured
  - XXX DONE? backwards compatability (maybe? test it and find out...)
+
+
+
 */
 
 
@@ -1050,7 +1053,7 @@ function getStateFromURL() {
         console.log(state)
     } catch (e) {
         console.log("error parsing state!")
-        throw e;
+        console.log(e.stack)
         pushStateToURL()
     }
 }
