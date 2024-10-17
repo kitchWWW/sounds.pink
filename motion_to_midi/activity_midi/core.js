@@ -4,7 +4,6 @@
 /*
 
 - fix bug where if you disable a output while it is solo, it stays solo'd, instead of releasing the solo
-- add distances
 
 */
 
@@ -395,7 +394,6 @@ function initState() {
 
 
         var id = i
-        console.log("id")
         var inputField = document.createElement("INPUT");
         inputField.setAttribute("type", "text");
         inputField.myIndex = id
@@ -519,8 +517,6 @@ function initState() {
         }
     }
 }
-
-console.log("958248935u8239ur")
 
 function addNewAngle() {
     state.angles.push({
@@ -848,7 +844,6 @@ function doWholeSpecificFunction(result) {
                 canvasElement.width,
                 canvasElement.height)
             var distanceBetween = calculateDistance(px1, px2)
-            console.log({distanceBetween, "cw":canvasElement.width})
             if(!isNaN(distanceBetween)){
                 sendMidiCC(state.dist[distanceIndex].cc,Math.floor(128 * distanceBetween / (canvasElement.width)))
             }
@@ -1178,19 +1173,15 @@ function updateStateToWorkWithCurrentStateObject(validState, newState){
 
 function getStateFromURL() {
     try {
-        console.log(document.location.search)
         var query = getQueryParams(document.location.search);
-        console.log(query)
-        console.log(query.s)
         var newState = JSON.parse(query.s)
-        console.log(newState)        
         var stillNewState = updateStateToWorkWithCurrentStateObject(state,newState)
-        console.log(stillNewState)
         state = newState
         console.log(state)
     } catch (e) {
         console.log("error parsing state!")
         console.log(e.stack)
+        console.log("going with default state.")
         pushStateToURL()
     }
 }
@@ -1350,16 +1341,21 @@ let lastVideoTime = -1;
 
 
 async function predictWebcam() {
+    console.log("called predictWebcam")
     var idealWidth = document.getElementById("col1").clientWidth
-    var idealHeight = idealWidth * (360 / 480)
+    var idealHeight = idealWidth * (video.videoHeight / video.videoWidth) // RESPECT the original video aspect ratio
 
     idealHeight = idealHeight + "px"
     idealWidth = idealWidth + "px"
+
+    
+
 
     canvasElement.style.height = idealHeight // videoHeight;
     video.style.height = idealHeight // videoHeight;
     canvasElement.style.width = idealWidth // videoWidth;
     video.style.width = idealWidth // videoWidth;
+
     // Now let's start detecting the stream.
     if (runningMode === "IMAGE") {
         runningMode = "VIDEO";
