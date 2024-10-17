@@ -1166,7 +1166,7 @@ function updateStateToWorkWithCurrentStateObject(validState, newState){
         newState.angles = []
     }
     if(!('dist' in newState)){
-        newState.angles = []
+        newState.dist = []
     }
     return newState
 }
@@ -1347,9 +1347,6 @@ async function predictWebcam() {
 
     idealHeight = idealHeight + "px"
     idealWidth = idealWidth + "px"
-
-    
-
 
     canvasElement.style.height = idealHeight // videoHeight;
     video.style.height = idealHeight // videoHeight;
