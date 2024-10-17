@@ -3,14 +3,8 @@
 
 /*
 
-Angles:
- - XXX DONE solo buttons
- - XXX DONE trash button
- - XXX DONE display it
- - XXX DONE show a little fancy arc of the angle being measured
- - XXX DONE? backwards compatability (maybe? test it and find out...)
-
-
+- fix bug where if you disable a output while it is solo, it stays solo'd, instead of releasing the solo
+- add distances
 
 */
 
@@ -62,7 +56,11 @@ var state = {
     angles: [{
         pts: [13, 11, 23],
         cc: 20
-    }, ]
+    }, ],
+    dist: [{
+        pts: [15, 16],
+        cc: 21
+    },]
 }
 
 
@@ -246,6 +244,92 @@ function updateDisplayWithState() {
         document.getElementById('angleUIList').appendChild(iDiv);
     }
 
+
+    document.getElementById('distanceUIList').innerHTML = ""
+    for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
+        var iDiv = document.createElement('div');
+        for (var pointIndex = 0; pointIndex < 2; pointIndex++) {
+            const select = document.createElement('select');
+            select.distanceIndex = distanceIndex;
+            select.pointIndex = pointIndex;
+            select.id = "distanceSelect" + distanceIndex + ":" + pointIndex
+            select.style.width = "100px"
+            allPoints.forEach(function(option, index) {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.text = option;
+                select.appendChild(opt);
+            });
+            select.value = state.dist[distanceIndex].pts[pointIndex]
+            select.addEventListener("change", (event) => {
+                var distanceIndex = event.srcElement.distanceIndex
+                var pointIndex = event.srcElement.pointIndex
+                var newVal = document.getElementById("distanceSelect" + distanceIndex + ":" + pointIndex).value
+                state.dist[distanceIndex].pts[pointIndex] = newVal
+                stateHasBeenUpdated()
+            })
+            iDiv.appendChild(select)
+        }
+        var inputField = document.createElement("INPUT");
+        inputField.setAttribute("type", "text");
+        inputField.distanceIndex = distanceIndex
+        inputField.myIndex = distanceIndex
+        inputField.id = "midiCCdistance" + distanceIndex
+        inputField.addEventListener('change', (event) => {
+            var i = event.srcElement.distanceIndex
+            var newVal = parseInt(event.srcElement.value)
+            if (newVal > 128) {
+                newVal = nextMidiCC()
+            }
+            if (newVal < 0) {
+                newVal = nextMidiCC()
+            }
+            state.dist[i].cc = newVal
+            stateHasBeenUpdated()
+        })
+        inputField.value = state.dist[distanceIndex].cc
+        iDiv.appendChild(inputField)
+
+        var myDelete = document.createElement('span');
+        myDelete.classList.add("soloButton") // just for styling
+        myDelete.innerHTML = "delete"
+        myDelete.style.display = "inline-block"
+        myDelete.distanceIndex = distanceIndex
+        myDelete.addEventListener('click', (event) => {
+            var distanceIndex = event.srcElement.distanceIndex
+            state.dist.splice(distanceIndex,1) // delete it!
+            stateHasBeenUpdated()
+        })
+        iDiv.appendChild(myDelete)
+
+        var mySolo = document.createElement('span');
+        mySolo.classList.add("soloButton")
+        mySolo.innerHTML = "solo"
+        mySolo.myIndex = distanceIndex
+        mySolo.id = "distanceSolo" + distanceIndex
+        mySolo.distanceIndex = distanceIndex
+        mySolo.addEventListener('click', (event) => {
+            var id = event.srcElement.id
+            console.log("here!!!!!!!!!!")
+            console.log(i)
+            console.log(event.srcElement.distanceIndex)
+            console.log(soloedMidiCCLabel)
+            if (soloedMidiCCLabel == event.srcElement.id) {
+                soloedMidiCCLabel = ""
+            } else {
+                soloedMidiCCLabel = event.srcElement.id
+            }
+            stateHasBeenUpdated()
+        })
+        if (soloedMidiCCLabel == 'distanceSolo' + distanceIndex) {
+            mySolo.style.backgroundColor = "#CCCC00"
+        } else {
+            mySolo.style.backgroundColor = "#555555"
+        }
+        mySolo.style.display = "inline-block"
+        iDiv.appendChild(mySolo)
+        document.getElementById('distanceUIList').appendChild(iDiv);
+    }
 }
 
 function initState() {
@@ -448,6 +532,16 @@ function addNewAngle() {
 document.getElementById("addNewAngleButton").onclick = addNewAngle
 
 
+function addNewDistance() {
+    state.dist.push({
+        pts: [0, 0],
+        cc: nextMidiCC()
+    })
+    stateHasBeenUpdated()
+}
+document.getElementById("addNewDistanceButton").onclick = addNewDistance
+
+
 function drawActiveBoxes() {
     document.getElementById('boxesList').innerHTML = ""
     for (var w = 0; w < state.width; w++) {
@@ -582,6 +676,9 @@ function sendMidiCC(ccChan, val) {
         }
         if(solospan.id.includes("angle")) {
             chanToSolo = document.getElementById("midiCCangle" + solospan.myIndex).value
+        }
+        if(solospan.id.includes("distance")) {
+            chanToSolo = document.getElementById("midiCCdistance" + solospan.myIndex).value
         }
     }
     // we DO want to do rounding for free.
@@ -736,6 +833,31 @@ function doWholeSpecificFunction(result) {
             canvasCtx.lineWidth = 3;
             canvasCtx.strokeStyle = colorParams[colorID].accentColor1_darker;
             canvasCtx.stroke();
+        }
+
+         for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
+            var distPts = state.dist[distanceIndex].pts
+            var px1 = normalizedToPixelCoordinates(
+                landmark[distPts[0]].x,
+                landmark[distPts[0]].y,
+                canvasElement.width,
+                canvasElement.height)
+            var px2 = normalizedToPixelCoordinates(
+                landmark[distPts[1]].x,
+                landmark[distPts[1]].y,
+                canvasElement.width,
+                canvasElement.height)
+            var distanceBetween = calculateDistance(px1, px2)
+            console.log({distanceBetween, "cw":canvasElement.width})
+            if(!isNaN(distanceBetween)){
+                sendMidiCC(state.dist[distanceIndex].cc,Math.floor(128 * distanceBetween / (canvasElement.width)))
+            }
+            canvasCtx.beginPath();
+            canvasCtx.lineWidth = 4;
+            canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
+            canvasCtx.moveTo(px1[0], px1[1])
+            canvasCtx.lineTo(px2[0], px2[1])
+            canvasCtx.stroke()
         }
 
         prevlandmarks.push(JSON.parse(JSON.stringify(landmark)));
@@ -949,6 +1071,18 @@ function calculateAngle(p1, p2, p3) {
     return angleInDegrees;
 }
 
+function calculateDistance(p1, p2) {
+    // Calculate the differences in x and y coordinates
+    const deltaX = p1[0] - p2[0];
+    const deltaY = p1[1] - p2[1];
+
+    // Calculate the distance using the Pythagorean theorem
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    return distance;
+}
+
+
 function calculateAverage(arr) {
     if (arr.length === 0) return 0;
 
@@ -1034,6 +1168,9 @@ function dataToQueryString(data) {
 function updateStateToWorkWithCurrentStateObject(validState, newState){
     // add backwards compatability
     if(!('angles' in newState)){
+        newState.angles = []
+    }
+    if(!('dist' in newState)){
         newState.angles = []
     }
     return newState
@@ -1275,6 +1412,7 @@ var isDivHidden = {
     "activityContent": false,
     "xyContent": false,
     "angleContent": false,
+    "distanceContent": false,
 }
 
 document.getElementById("spatialBoxesContentShowHide").onclick = function() {
@@ -1288,6 +1426,10 @@ document.getElementById("xyContentShowHide").onclick = function() {
 }
 document.getElementById("angleContentShowHide").onclick = function() {
     showHide("angleContent")
+}
+
+document.getElementById("distanceContentShowHide").onclick = function() {
+    showHide("distanceContent")
 }
 
 
