@@ -17,33 +17,31 @@
       </div>
     </div>
     <div class="col2">
-     <div class="markerArea">
-      <b>motion-into-midi.com</b> <i>by Brian Ellis</i>
-    </div>
     <div class="markerArea">
       <div>
-        <button id="webcamButton" style="display:block">ENABLE WEBCAM</button>
+        <button id="webcamButton" style="display:block">turn on camera</button>
         <select id="cameraSelect" style="display:none"></select>
-        <button id="enableMidi">ENABLE MIDI</button>
+        <button id="enableMidi">turn on midi</button>
         <select id="midiOutputDevices" style="display: none;"></select>
       </div>
       <div class="error" id="midiError">Hi! No Midi devices were found.<br><a href="https://help.ableton.com/hc/en-us/articles/209774225-Setting-up-a-virtual-MIDI-bus" target="_blank">Set up a virtual midi device</a>, <br>then refresh this page</div>
       <div style="display:none">debug:<input type="checkbox" id="debugOn"></div>
       Smoothing:<input type="range" min="1" max="10" value="3" class="slider" id="smoothingSlider">
       <br>
-      UI Settings: <select name="colorSelector" id="colorSelector">
+      Overlay Color: <select name="colorSelector" id="colorSelector">
         <option value="dark">Dark</option>
         <option value="light">Light</option>
         <!-- <option value="colorful">Colorful</option> -->
       </select>
+      <button id="myBtn" style="display:none;">Open midi map</button>
       <!-- <button id="fullscreenButton">fullscreen</button> -->
     </div>
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>Spatial Boxes</b> &nbsp; <span id="spatialBoxesContentShowHide" class="showHide">hide</span>
+        <b>Regions</b> &nbsp; <span id="spatialBoxesContentShowHide" class="showHide">hide</span>
         <div id="spatialBoxesContent" class="rowSmall">
           <div class="columnSmall">
-            Active Body Markers:
+            Body Markers:
             <div id="bodyMarkerList">
             </div>
           </div>
@@ -57,7 +55,7 @@
             <input type="text" id="heightTextBox">
             <br>
             <br>
-            Active Boxes:
+            Regions:
             <div id="boxesList">
             </div>
           </div>
@@ -66,7 +64,7 @@
     </div>
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>Activity Sensor</b> &nbsp; <span id="activityContentShowHide" class="showHide">hide</span>
+        <b>Activity</b> &nbsp; <span id="activityContentShowHide" class="showHide">hide</span>
         <div id="activityContent" class="rowSmall">
           <div class="columnSmall">
             <div id="bodyMarkerListActivity">
@@ -104,6 +102,9 @@
         </div>
       </div>
     </div>
+     <div class="markerArea">
+      <b>motion-into-midi.com</b> <i>by <a href="https://brianellissound.com/" target="_blank">Brian Ellis</a></i>
+    </div>
     <br><br>
 
 
@@ -111,6 +112,17 @@
     
   </div>
 </div>
+
+<div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <p>Some text in the Modal..</p>
+  </div>
+
+</div>
+
 
 <script type="module" src="./core.js"></script>
 </body>

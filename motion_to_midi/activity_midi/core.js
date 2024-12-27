@@ -43,42 +43,35 @@ function nextMidiCC() {
 }
 
 var state = {
-    boxEnabled: [0],
-    activitySending: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    xySending: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 16, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    boxEnabled: [],
+    activitySending: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    xySending: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     height: 4,
     width: 5,
     smoothing: 3,
     mappings: {
-        "1-2": 60
     }, // for boxes
-    angles: [{
-        pts: [13, 11, 23],
-        cc: 20
-    }, ],
-    dist: [{
-        pts: [15, 16],
-        cc: 21
-    },]
+    angles: [],
+    dist: []
 }
 
 
 var pointLabelsToDo = [
     "nose",
-    "left ear",
-    "right ear",
-    "left shoulder",
-    "right shoulder",
-    "left elbow",
-    "right elbow",
-    "left wrist",
-    "right wrist",
-    "left hip",
-    "right hip",
-    "left knee",
-    "right knee",
-    "left ankle",
-    "right ankle",
+    "ear - L",
+    "ear - R",
+    "shoulder - L",
+    "shoulder - R",
+    "elbow - L",
+    "elbow - R",
+    "wrist - L",
+    "wrist - R",
+    "hip - L",
+    "hip - R",
+    "knee - L",
+    "knee - R",
+    "ankle - L",
+    "ankle - R",
 ]
 
 
@@ -1206,38 +1199,38 @@ getStateFromURL()
 
 var allPoints = [
     "nose",
-    "left eye (inner)",
-    "left eye",
-    "left eye (outer)",
-    "right eye (inner)",
-    "right eye",
-    "right eye (outer)",
-    "left ear",
-    "right ear",
-    "mouth (left)",
-    "mouth (right)",
-    "left shoulder",
-    "right shoulder",
-    "left elbow",
-    "right elbow",
-    "left wrist",
-    "right wrist",
-    "left pinky",
-    "right pinky",
-    "left index",
-    "right index",
-    "left thumb",
-    "right thumb",
-    "left hip",
-    "right hip",
-    "left knee",
-    "right knee",
-    "left ankle",
-    "right ankle",
-    "left heel",
-    "right heel",
-    "left foot index",
-    "right foot index"
+    "eye (inner) - L",
+    "eye - L",
+    "eye (outer) - L",
+    "eye (inner) - R",
+    "eye - R",
+    "eye (outer) - R",
+    "ear - L",
+    "ear - R",
+    "mouth - L",
+    "mouth - R",
+    "shoulder - L",
+    "shoulder - R",
+    "elbow - L",
+    "elbow - R",
+    "wrist - L",
+    "wrist - R",
+    "pinky - L",
+    "pinky - R",
+    "index - L",
+    "index - R",
+    "thumb - L",
+    "thumb - R",
+    "hip - L",
+    "hip - R",
+    "knee - L",
+    "knee - R",
+    "ankle - L",
+    "ankle - R",
+    "heel - L",
+    "heel - R",
+    "foot index  - L",
+    "foot index - R"
 ]
 
 function stateHasBeenUpdated() {
@@ -1285,7 +1278,7 @@ const createPoseLandmarker = async () => {
             delegate: "GPU"
         },
         runningMode: runningMode,
-        numPoses: 2
+        numPoses: 1
     });
 };
 createPoseLandmarker();
@@ -1441,4 +1434,37 @@ function showHide(divName) {
         document.getElementById(divName + "ShowHide").innerHTML = "show"
         isDivHidden[divName] = true
     }
+}
+
+
+
+
+
+
+
+
+// Get the modal
+var modal = document.getElementById("myModal");
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks on the button, open the modal
+btn.onclick = function() {
+  modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
 }
