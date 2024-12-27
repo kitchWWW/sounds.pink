@@ -38,7 +38,9 @@ var rectCounts = {}
 var currMidiCC = 16
 
 function nextMidiCC() {
-    var maxSoFar = Math.max(...state.activitySending, ...state.xySending, 15)
+    const maxAngleCC = state.angles.reduce((max, item) => Math.max(max, item.cc), -Infinity);
+    const maxDistanceCC = state.dist.reduce((max, item) => Math.max(max, item.cc), -Infinity);
+    var maxSoFar = Math.max(...state.activitySending, ...state.xySending, maxDistanceCC, maxAngleCC, 15)
     return maxSoFar + 1
 }
 
