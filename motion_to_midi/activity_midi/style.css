@@ -171,23 +171,23 @@ footer {
   background: linear-gradient(315deg, rgba(75,75,75,1) 16%, rgba(98,98,98,1) 100%);
 }
 
-/* unvisited link */
-a:link {
+.whitelink{
   color: white;
 }
 
-/* visited link */
-a:visited {
+.whitelink a:link {
   color: white;
 }
 
-/* mouse over link */
-a:hover {
+.whitelink a:visited {
   color: white;
 }
 
-/* selected link */
-a:active {
+.whitelink a:hover {
+  color: white;
+}
+
+.whitelink a:active {
   color: white;
 }
 
