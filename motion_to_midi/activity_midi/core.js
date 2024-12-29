@@ -1454,8 +1454,73 @@ var btn = document.getElementById("myBtn");
 // Get the <span> element that closes the modal
 var span = document.getElementsByClassName("close")[0];
 
+function renderInsidesOfMidiModal(){
+    document.getElementById("midimaplist").innerHTML = ""
+    var divsToAdd = []
+    for (var i = 0; i < state.activitySending.length; i++) {
+        if(state.activitySending[i] != -1){
+            var newdiv = document.createElement("div")
+            var activityLabel = allPoints[i]
+            newdiv.innerHTML = state.activitySending[i] +" - activity: "+activityLabel
+            newdiv.ccNumber = state.activitySending[i]
+            divsToAdd.push(newdiv)            
+        }
+    }
+    for (var i = 0; i < state.xySending.length; i++) {
+        if(state.xySending[i] != -1){
+            var newdiv = document.createElement("div")
+            var xyLabel = allPoints[i% allPoints.length] 
+            if(i <  (allPoints.length)){
+                newdiv.innerHTML = state.xySending[i] +" - XY: X "+xyLabel    
+            }else{
+                newdiv.innerHTML = state.xySending[i] +" - XY: Y "+xyLabel    
+            }
+            newdiv.ccNumber = state.xySending[i]
+            divsToAdd.push(newdiv)            
+        }
+    }
+    for (var i = 0; i < state.angles.length; i++) {
+        var newdiv = document.createElement("div")
+        var angleLabel = allPoints[state.angles[i].pts[0]]+", "+allPoints[state.angles[i].pts[1]]+", "+allPoints[state.angles[i].pts[2]]
+        newdiv.innerHTML = state.angles[i].cc +" - angle: "+angleLabel
+        newdiv.ccNumber = state.angles[i].cc
+        divsToAdd.push(newdiv)
+    }
+
+    for (var i = 0; i < state.dist.length; i++) {
+        var newdiv = document.createElement("div")
+        var distLabel = allPoints[state.dist[i].pts[0]]+", "+allPoints[state.dist[i].pts[1]]
+        newdiv.innerHTML = state.dist[i].cc +" - distance: "+distLabel
+        newdiv.ccNumber = state.dist[i].cc
+        divsToAdd.push(newdiv)
+    }
+
+
+
+
+
+    // now sort them to display in order
+    divsToAdd.sort((a, b) => a.ccNumber - b.ccNumber);
+
+    // and identify duplicates to highlight in red
+    const countMap = new Map();
+    divsToAdd.forEach(obj => {
+        countMap.set(obj.ccNumber, (countMap.get(obj.ccNumber) || 0) + 1);
+    });
+
+    // Add isDuplicate field to each object
+    divsToAdd.forEach(obj => {
+        obj.isDuplicate = countMap.get(obj.ccNumber) > 1;
+    });
+
+    for(var i = 0; i < divsToAdd.length;i++){
+        document.getElementById("midimaplist").appendChild(divsToAdd[i])
+    }
+}
+
 // When the user clicks on the button, open the modal
 btn.onclick = function() {
+  renderInsidesOfMidiModal()
   modal.style.display = "block";
 }
 
@@ -1470,3 +1535,5 @@ window.onclick = function(event) {
     modal.style.display = "none";
   }
 }
+
+
