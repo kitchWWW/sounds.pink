@@ -292,3 +292,16 @@ input[type="text"] {
   text-decoration: none;
   cursor: pointer;
 }
+
+.sendButton{
+  background: #444;
+  color:white;
+  border: none;
+  padding: 5px;
+  margin:2px;
+  border-radius: 5px;
+}
+
+.sendButton:hover{
+  background: #222222;
+}

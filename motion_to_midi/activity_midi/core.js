@@ -654,6 +654,10 @@ function sendNoteOff(id) {
 }
 
 function sendMidiCC(ccChan, val) {
+    if(midiMapIsOpen){
+        console.log("midi map open, not sending traditional midi cc");
+        return;
+    }
     var chanToSolo = -1
     if (soloedMidiCCLabel != "") {
         var solospan = document.getElementById(soloedMidiCCLabel)
@@ -1443,7 +1447,7 @@ function showHide(divName) {
 
 
 
-
+var midiMapIsOpen = false
 
 // Get the modal
 var modal = document.getElementById("myModal");
@@ -1454,50 +1458,115 @@ var btn = document.getElementById("myBtn");
 // Get the <span> element that closes the modal
 var span = document.getElementsByClassName("close")[0];
 
+function sendPulse(clickedbutton, numb) {
+    var allsendbuttons = document.getElementsByClassName("sendButton");
+    // Step 1: Disable all other send buttons for 0.5 seconds
+    for (let i = 0; i < allsendbuttons.length; i++) {
+        allsendbuttons[i].disabled = true;
+        allsendbuttons[i].style.background = "#666"
+    }
+    setTimeout(() => {
+        for (let i = 0; i < allsendbuttons.length; i++) {
+            allsendbuttons[i].disabled = false;
+            allsendbuttons[i].style.background = "#444"
+        }
+    }, 600);
+
+    // Step 2: Trigger a callback to sendMidiWith(value) with linear ramp values up and down
+    let interval = 10; // milliseconds
+    let duration = 500; // total duration in ms
+    let steps = duration / (2 * interval); // number of steps for up and down ramp
+    let stepValue = 1 / steps; // increment value per step
+    let currentValue = 0;
+    let ascending = true; // direction of the ramp
+    let clearIntervalNextTime = false
+
+    let rampInterval = setInterval(() => {
+        var toSend = [0xB0, numb, Math.round(currentValue * 127)]
+        console.log(toSend)
+        sendToMidi(toSend)
+
+        if(clearIntervalNextTime){
+            clearInterval(rampInterval);
+        }
+
+        // Step 3: Update clicked button background based on currentValue
+        let percentage = currentValue * 100;
+        clickedbutton.style.background = `linear-gradient(to right, #888 ${percentage}%, black ${percentage}%)`;
+
+        if (ascending) {
+            currentValue += stepValue;
+            if (currentValue >= 1) {
+                ascending = false;
+                currentValue = 1; // Ensure it doesn’t exceed 1
+            }
+        } else {
+            currentValue -= stepValue;
+            if (currentValue < 0) {
+                clearIntervalNextTime = true
+                currentValue = 0; // Ensure it doesn’t drop below 0
+            }
+        }
+    }, interval);
+}
+
+// Example function to simulate sending MIDI data
+function sendMidiWith(value) {
+    console.log("Sending MIDI value:", value);
+}
+
+function createMidiMapDiv(ccnumb, label){
+    var newdiv = document.createElement("div")
+    var sendButton = document.createElement("button")
+    sendButton.innerHTML = "send pulse"
+    sendButton.ccNumber = ccnumb
+    sendButton.classList.add("sendButton")
+    sendButton.style.marginRight = "5px"
+    sendButton.onclick = (event)=>{
+        console.log(event.target.ccNumber)
+        sendPulse(event.target, event.target.ccNumber)
+    }
+    var labelSpan = document.createElement("span")
+    labelSpan.innerHTML = ccnumb +" - "+label
+    newdiv.appendChild(sendButton)
+    newdiv.appendChild(labelSpan)
+    newdiv.ccNumber = ccnumb
+    return newdiv
+}
+
 function renderInsidesOfMidiModal(){
     document.getElementById("midimaplist").innerHTML = ""
     var divsToAdd = []
     for (var i = 0; i < state.activitySending.length; i++) {
         if(state.activitySending[i] != -1){
-            var newdiv = document.createElement("div")
             var activityLabel = allPoints[i]
-            newdiv.innerHTML = state.activitySending[i] +" - activity: "+activityLabel
-            newdiv.ccNumber = state.activitySending[i]
-            divsToAdd.push(newdiv)            
+            var label = "activity: "+activityLabel
+            divsToAdd.push(createMidiMapDiv(state.activitySending[i], label))            
         }
     }
     for (var i = 0; i < state.xySending.length; i++) {
         if(state.xySending[i] != -1){
-            var newdiv = document.createElement("div")
             var xyLabel = allPoints[i% allPoints.length] 
+            var label = ""
             if(i <  (allPoints.length)){
-                newdiv.innerHTML = state.xySending[i] +" - XY: X "+xyLabel    
+                label = "XY: X "+xyLabel    
             }else{
-                newdiv.innerHTML = state.xySending[i] +" - XY: Y "+xyLabel    
+                label = "XY: Y "+xyLabel    
             }
-            newdiv.ccNumber = state.xySending[i]
-            divsToAdd.push(newdiv)            
+            divsToAdd.push(createMidiMapDiv(state.xySending[i], label))  
         }
     }
     for (var i = 0; i < state.angles.length; i++) {
-        var newdiv = document.createElement("div")
         var angleLabel = allPoints[state.angles[i].pts[0]]+", "+allPoints[state.angles[i].pts[1]]+", "+allPoints[state.angles[i].pts[2]]
-        newdiv.innerHTML = state.angles[i].cc +" - angle: "+angleLabel
-        newdiv.ccNumber = state.angles[i].cc
-        divsToAdd.push(newdiv)
+        var label = "angle: "+angleLabel
+        divsToAdd.push(createMidiMapDiv(state.angles[i].cc, label))
     }
 
     for (var i = 0; i < state.dist.length; i++) {
-        var newdiv = document.createElement("div")
         var distLabel = allPoints[state.dist[i].pts[0]]+", "+allPoints[state.dist[i].pts[1]]
-        newdiv.innerHTML = state.dist[i].cc +" - distance: "+distLabel
-        newdiv.ccNumber = state.dist[i].cc
-        divsToAdd.push(newdiv)
+        var label = state.dist[i].cc +" - distance: "+distLabel
+        divsToAdd.push(createMidiMapDiv(state.dist[i].cc, label))
     }
-
-
-
-
 
     // now sort them to display in order
     divsToAdd.sort((a, b) => a.ccNumber - b.ccNumber);
@@ -1522,17 +1591,20 @@ function renderInsidesOfMidiModal(){
 btn.onclick = function() {
   renderInsidesOfMidiModal()
   modal.style.display = "block";
+  midiMapIsOpen = true;
 }
 
 // When the user clicks on <span> (x), close the modal
 span.onclick = function() {
   modal.style.display = "none";
+  midiMapIsOpen = false;
 }
 
 // When the user clicks anywhere outside of the modal, close it
 window.onclick = function(event) {
   if (event.target == modal) {
     modal.style.display = "none";
+    midiMapIsOpen = false;
   }
 }
 
