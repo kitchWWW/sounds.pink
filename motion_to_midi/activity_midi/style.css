@@ -239,7 +239,15 @@ input[type="text"] {
   display: none;
 }
 
-.soloButton{
+.duplicate{
+  background: #FFFF00;
+  color:black;
+  padding:5px;
+  margin: 5px;
+  border-radius: 5px;
+}
+
+.deleteButton{
   margin-left: 10px;
   font-size: small;
   display: none;
@@ -249,7 +257,7 @@ input[type="text"] {
   background-color: none;
 }
 
-.soloButton:hover {
+.deleteButton:hover {
   background-color: #222222;
 }
 
@@ -302,6 +310,6 @@ input[type="text"] {
   border-radius: 5px;
 }
 
-.sendButton:hover{
-  background: #222222;
+.sendButtonNormal:hover{
+  background: #222222 !important;
 }

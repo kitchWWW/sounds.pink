@@ -3,7 +3,6 @@
 
 /*
 
-- fix bug where if you disable a output while it is solo, it stays solo'd, instead of releasing the solo
 
 */
 
@@ -77,8 +76,6 @@ var pointLabelsToDo = [
 ]
 
 
-var soloedMidiCCLabel = ""
-
 function updateDisplayWithState() {
     document.getElementById("smoothingSlider").value = state.smoothing
     for (var i = 0; i < allPoints.length; i++) {
@@ -92,45 +89,23 @@ function updateDisplayWithState() {
             if (state.activitySending[i] == -1) {
                 document.getElementById("midiCCactiity" + i).disabled = true
                 document.getElementById("midiCCactiity" + i).value = ""
-                document.getElementById('activitySolo' + i).style.display = "none"
             } else {
                 document.getElementById("midiCCactiity" + i).disabled = false
                 document.getElementById("midiCCactiity" + i).value = state.activitySending[i]
-                document.getElementById('activitySolo' + i).style.display = "inline-block"
-                if (soloedMidiCCLabel == 'activitySolo' + i) {
-                    document.getElementById('activitySolo' + i).style.backgroundColor = "#CCCC00"
-                } else {
-                    document.getElementById('activitySolo' + i).style.backgroundColor = "#555555"
-                }
             }
             if (state.xySending[i] == -1) {
                 document.getElementById("midiCCxy" + i).disabled = true
                 document.getElementById("midiCCxy" + i).value = ""
-                document.getElementById('xySolo' + i).style.display = "none"
             } else {
                 document.getElementById("midiCCxy" + i).disabled = false
                 document.getElementById("midiCCxy" + i).value = state.xySending[i]
-                document.getElementById('xySolo' + i).style.display = "inline-block"
-                if (soloedMidiCCLabel == 'xySolo' + i) {
-                    document.getElementById('xySolo' + i).style.backgroundColor = "#CCCC00"
-                } else {
-                    document.getElementById('xySolo' + i).style.backgroundColor = "#555555"
-                }
-
             }
             if (state.xySending[(i + allPoints.length)] == -1) {
                 document.getElementById("midiCCxy" + (i + allPoints.length)).disabled = true
                 document.getElementById("midiCCxy" + (i + allPoints.length)).value = ""
-                document.getElementById('xySolo' + (i + allPoints.length)).style.display = "none"
             } else {
                 document.getElementById("midiCCxy" + (i + allPoints.length)).disabled = false
                 document.getElementById("midiCCxy" + (i + allPoints.length)).value = state.xySending[(i + allPoints.length)]
-                document.getElementById('xySolo' + (i + allPoints.length)).style.display = "inline-block"
-                if (soloedMidiCCLabel == 'xySolo' + (i + allPoints.length)) {
-                    document.getElementById('xySolo' + (i + allPoints.length)).style.backgroundColor = "#CCCC00"
-                } else {
-                    document.getElementById('xySolo' + (i + allPoints.length)).style.backgroundColor = "#555555"
-                }
             }
         }
     }
@@ -198,7 +173,7 @@ function updateDisplayWithState() {
         iDiv.appendChild(inputField)
 
         var myDelete = document.createElement('span');
-        myDelete.classList.add("soloButton") // just for styling
+        myDelete.classList.add("deleteButton") // just for styling
         myDelete.innerHTML = "delete"
         myDelete.style.display = "inline-block"
         myDelete.angleIndex = angleIndex
@@ -208,33 +183,6 @@ function updateDisplayWithState() {
             stateHasBeenUpdated()
         })
         iDiv.appendChild(myDelete)
-
-        var mySolo = document.createElement('span');
-        mySolo.classList.add("soloButton")
-        mySolo.innerHTML = "solo"
-        mySolo.myIndex = angleIndex
-        mySolo.id = "angleSolo" + angleIndex
-        mySolo.angleIndex = angleIndex
-        mySolo.addEventListener('click', (event) => {
-            var id = event.srcElement.id
-            console.log("here!!!!!!!!!!")
-            console.log(i)
-            console.log(event.srcElement.angleIndex)
-            console.log(soloedMidiCCLabel)
-            if (soloedMidiCCLabel == event.srcElement.id) {
-                soloedMidiCCLabel = ""
-            } else {
-                soloedMidiCCLabel = event.srcElement.id
-            }
-            stateHasBeenUpdated()
-        })
-        if (soloedMidiCCLabel == 'angleSolo' + angleIndex) {
-            mySolo.style.backgroundColor = "#CCCC00"
-        } else {
-            mySolo.style.backgroundColor = "#555555"
-        }
-        mySolo.style.display = "inline-block"
-        iDiv.appendChild(mySolo)
         document.getElementById('angleUIList').appendChild(iDiv);
     }
 
@@ -285,7 +233,7 @@ function updateDisplayWithState() {
         iDiv.appendChild(inputField)
 
         var myDelete = document.createElement('span');
-        myDelete.classList.add("soloButton") // just for styling
+        myDelete.classList.add("deleteButton") // just for styling
         myDelete.innerHTML = "delete"
         myDelete.style.display = "inline-block"
         myDelete.distanceIndex = distanceIndex
@@ -295,33 +243,6 @@ function updateDisplayWithState() {
             stateHasBeenUpdated()
         })
         iDiv.appendChild(myDelete)
-
-        var mySolo = document.createElement('span');
-        mySolo.classList.add("soloButton")
-        mySolo.innerHTML = "solo"
-        mySolo.myIndex = distanceIndex
-        mySolo.id = "distanceSolo" + distanceIndex
-        mySolo.distanceIndex = distanceIndex
-        mySolo.addEventListener('click', (event) => {
-            var id = event.srcElement.id
-            console.log("here!!!!!!!!!!")
-            console.log(i)
-            console.log(event.srcElement.distanceIndex)
-            console.log(soloedMidiCCLabel)
-            if (soloedMidiCCLabel == event.srcElement.id) {
-                soloedMidiCCLabel = ""
-            } else {
-                soloedMidiCCLabel = event.srcElement.id
-            }
-            stateHasBeenUpdated()
-        })
-        if (soloedMidiCCLabel == 'distanceSolo' + distanceIndex) {
-            mySolo.style.backgroundColor = "#CCCC00"
-        } else {
-            mySolo.style.backgroundColor = "#555555"
-        }
-        mySolo.style.display = "inline-block"
-        iDiv.appendChild(mySolo)
         document.getElementById('distanceUIList').appendChild(iDiv);
     }
 }
@@ -406,29 +327,9 @@ function initState() {
             stateHasBeenUpdated()
         })
 
-        var mySolo = document.createElement('span');
-        mySolo.classList.add("soloButton")
-        mySolo.innerHTML = "solo"
-        mySolo.id = "activitySolo" + id
-        mySolo.myIndex = id
-        mySolo.addEventListener('click', (event) => {
-            var i = event.srcElement.myIndex
-            console.log("here!!!!!!!!!!")
-            console.log(i)
-            console.log(event.srcElement.id)
-            console.log(soloedMidiCCLabel)
-            if (soloedMidiCCLabel == event.srcElement.id) {
-                soloedMidiCCLabel = ""
-            } else {
-                soloedMidiCCLabel = event.srcElement.id
-            }
-            stateHasBeenUpdated()
-        })
-
         iDiv.appendChild(checkbox)
         iDiv.appendChild(inputField)
         iDiv.appendChild(myLabel)
-        iDiv.appendChild(mySolo)
 
         if (pointLabelsToDo.includes(allPoints[i])) {
             document.getElementById('bodyMarkerListActivity').appendChild(iDiv);
@@ -444,25 +345,6 @@ function initState() {
 
             var iDiv = document.createElement('div');
             var myLabel = document.createElement('span');
-
-            var mySolo = document.createElement('span');
-            mySolo.classList.add("soloButton")
-            mySolo.innerHTML = "solo"
-            mySolo.id = "xySolo" + indexToUse
-            mySolo.myIndex = indexToUse
-            mySolo.addEventListener('click', (event) => {
-                var i = event.srcElement.myIndex
-                console.log("here!!!!!!!!!!")
-                console.log(i)
-                console.log(event.srcElement.id)
-                console.log(soloedMidiCCLabel)
-                if (soloedMidiCCLabel == event.srcElement.id) {
-                    soloedMidiCCLabel = ""
-                } else {
-                    soloedMidiCCLabel = event.srcElement.id
-                }
-                stateHasBeenUpdated()
-            })
 
             iDiv.id = 'xySensorBodyMarker' + indexToUse;
 
@@ -505,7 +387,6 @@ function initState() {
             iDiv.appendChild(checkbox)
             iDiv.appendChild(inputField)
             iDiv.appendChild(myLabel)
-            iDiv.appendChild(mySolo)
             if (pointLabelsToDo.includes(allPoints[i])) {
                 document.getElementById('bodyMarkerListXY').appendChild(iDiv);
             }
@@ -658,24 +539,6 @@ function sendMidiCC(ccChan, val) {
         console.log("midi map open, not sending traditional midi cc");
         return;
     }
-    var chanToSolo = -1
-    if (soloedMidiCCLabel != "") {
-        var solospan = document.getElementById(soloedMidiCCLabel)
-        if (solospan.id.includes("xy")) {
-            // we do xy stuff to solo
-            chanToSolo = document.getElementById("midiCCxy" + solospan.myIndex).value
-        } 
-        if(solospan.id.includes("activity")) {
-            // we do activity stuff
-            chanToSolo = document.getElementById("midiCCactiity" + solospan.myIndex).value
-        }
-        if(solospan.id.includes("angle")) {
-            chanToSolo = document.getElementById("midiCCangle" + solospan.myIndex).value
-        }
-        if(solospan.id.includes("distance")) {
-            chanToSolo = document.getElementById("midiCCdistance" + solospan.myIndex).value
-        }
-    }
     // we DO want to do rounding for free.
     // we DON'T want to do minmaxing without alerting.
     var valToCheck = Math.round(val)
@@ -683,9 +546,7 @@ function sendMidiCC(ccChan, val) {
     if (valToCheck != valToSend) {
         console.log("ERROR: " + val + " != " + valToSend)
     }
-    if (chanToSolo == -1 || ccChan == chanToSolo) {
-        sendToMidi([0xB0, ccChan, valToSend])
-    }
+    sendToMidi([0xB0, ccChan, valToSend])
 }
 
 
@@ -990,6 +851,7 @@ function enableMidiStuff() {
 
 
 function onMIDISuccess(midiAccess) {
+    btn.disabled = false
     const midiOutputDevicesSelect = document.getElementById('midiOutputDevices');
     const outputs = midiAccess.outputs.values();
     var midiOutsAdded = 0
@@ -1463,11 +1325,13 @@ function sendPulse(clickedbutton, numb) {
     // Step 1: Disable all other send buttons for 0.5 seconds
     for (let i = 0; i < allsendbuttons.length; i++) {
         allsendbuttons[i].disabled = true;
+        allsendbuttons[i].classList.remove("sendButtonNormal")
         allsendbuttons[i].style.background = "#666"
     }
     setTimeout(() => {
         for (let i = 0; i < allsendbuttons.length; i++) {
             allsendbuttons[i].disabled = false;
+            allsendbuttons[i].classList.add("sendButtonNormal")
             allsendbuttons[i].style.background = "#444"
         }
     }, 600);
@@ -1521,6 +1385,7 @@ function createMidiMapDiv(ccnumb, label){
     sendButton.innerHTML = "send pulse"
     sendButton.ccNumber = ccnumb
     sendButton.classList.add("sendButton")
+    sendButton.classList.add("sendButtonNormal")
     sendButton.style.marginRight = "5px"
     sendButton.onclick = (event)=>{
         console.log(event.target.ccNumber)
@@ -1580,6 +1445,10 @@ function renderInsidesOfMidiModal(){
     // Add isDuplicate field to each object
     divsToAdd.forEach(obj => {
         obj.isDuplicate = countMap.get(obj.ccNumber) > 1;
+        console.log(obj.isDuplicate)
+        if(obj.isDuplicate){
+            obj.classList.add('duplicate')
+        }
     });
 
     for(var i = 0; i < divsToAdd.length;i++){

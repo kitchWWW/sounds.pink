@@ -33,7 +33,7 @@
         <option value="light">Light</option>
         <!-- <option value="colorful">Colorful</option> -->
       </select>
-      <button id="myBtn">Open midi map</button>
+      <button id="myBtn" disabled>Open midi map</button>
       <!-- <button id="fullscreenButton">fullscreen</button> -->
     </div>
     <div class="rowSmall">
@@ -106,10 +106,6 @@
       <b>motion-into-midi.com</b> <i>by <a href="https://brianellissound.com/" target="_blank" class="whitelink">Brian Ellis</a></i>
     </div>
     <br><br>
-
-
-
-    
   </div>
 </div>
 
@@ -118,7 +114,11 @@
   <!-- Modal content -->
   <div class="modal-content">
     <span class="close">&times;</span>
-    <p>Midi Mapping Setup</p>
+    Midi Mapping Setup
+    <br>
+    <br>
+    <i>all other midi outputs from motion-into-midi.com are muted while mapping is open.</i>
+    <br><br>
     <div id="midimaplist"></div>
   </div>
 
