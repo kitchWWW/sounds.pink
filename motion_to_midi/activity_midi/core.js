@@ -26,6 +26,43 @@ var colorParams = {
     },
 }
 
+var allPoints = [
+    "nose",
+    "eye (inner) - L",
+    "eye - L",
+    "eye (outer) - L",
+    "eye (inner) - R",
+    "eye - R",
+    "eye (outer) - R",
+    "ear - L",
+    "ear - R",
+    "mouth - L",
+    "mouth - R",
+    "shoulder - L",
+    "shoulder - R",
+    "elbow - L",
+    "elbow - R",
+    "wrist - L",
+    "wrist - R",
+    "pinky - L",
+    "pinky - R",
+    "index - L",
+    "index - R",
+    "thumb - L",
+    "thumb - R",
+    "hip - L",
+    "hip - R",
+    "knee - L",
+    "knee - R",
+    "ankle - L",
+    "ankle - R",
+    "heel - L",
+    "heel - R",
+    "foot index  - L",
+    "foot index - R"
+]
+
+
 var colorID = "dark"
 
 document.getElementById("colorSelector").addEventListener("change", function() {
@@ -38,22 +75,24 @@ var currMidiCC = 16
 
 function nextMidiCC() {
     const maxAngleCC = state.angles.reduce((max, item) => Math.max(max, item.cc), -Infinity);
+    const maxActivityCC = state.activity.reduce((max, item) => Math.max(max, item.cc), -Infinity);
     const maxDistanceCC = state.dist.reduce((max, item) => Math.max(max, item.cc), -Infinity);
-    var maxSoFar = Math.max(...state.activitySending, ...state.xySending, maxDistanceCC, maxAngleCC, 15)
+    const maxXYCC = state.xy.reduce((max, item) => Math.max(max, item.cc), -Infinity);
+    var maxSoFar = Math.max(maxActivityCC, maxXYCC, maxDistanceCC, maxAngleCC, 15)
     return maxSoFar + 1
 }
 
 var state = {
     boxEnabled: [],
-    activitySending: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    xySending: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     height: 4,
     width: 5,
     smoothing: 3,
     mappings: {
     }, // for boxes
     angles: [],
-    dist: []
+    dist: [],
+    xy:[],
+    activity:[]
 }
 
 
@@ -78,40 +117,15 @@ var pointLabelsToDo = [
 
 function updateDisplayWithState() {
     document.getElementById("smoothingSlider").value = state.smoothing
-    for (var i = 0; i < allPoints.length; i++) {
-        if (pointLabelsToDo.includes(allPoints[i])) {
-            document.getElementById("checkbox" + i).checked = state.boxEnabled.includes(i)
-            document.getElementById("checkboxActivity" + i).checked = state.activitySending[i] != -1
-            document.getElementById("checkboxXY" + i).checked = state.xySending[i] != -1
-            document.getElementById("checkboxXY" + (i + allPoints.length)).checked = state.xySending[i + allPoints.length] != -1
-
-            // and now do the boxvalues for all the Activity and XY things:
-            if (state.activitySending[i] == -1) {
-                document.getElementById("midiCCactiity" + i).disabled = true
-                document.getElementById("midiCCactiity" + i).value = ""
-            } else {
-                document.getElementById("midiCCactiity" + i).disabled = false
-                document.getElementById("midiCCactiity" + i).value = state.activitySending[i]
-            }
-            if (state.xySending[i] == -1) {
-                document.getElementById("midiCCxy" + i).disabled = true
-                document.getElementById("midiCCxy" + i).value = ""
-            } else {
-                document.getElementById("midiCCxy" + i).disabled = false
-                document.getElementById("midiCCxy" + i).value = state.xySending[i]
-            }
-            if (state.xySending[(i + allPoints.length)] == -1) {
-                document.getElementById("midiCCxy" + (i + allPoints.length)).disabled = true
-                document.getElementById("midiCCxy" + (i + allPoints.length)).value = ""
-            } else {
-                document.getElementById("midiCCxy" + (i + allPoints.length)).disabled = false
-                document.getElementById("midiCCxy" + (i + allPoints.length)).value = state.xySending[(i + allPoints.length)]
-            }
-        }
-    }
     document.getElementById("widthTextBox").value = state.width
     document.getElementById("heightTextBox").value = state.height
     drawActiveBoxes()
+     for (var i = 0; i < allPoints.length; i++) {
+        if (pointLabelsToDo.includes(allPoints[i])) {
+            document.getElementById("checkbox" + i).checked = state.boxEnabled.includes(i)
+        }
+    }
+
     for (var w = 0; w < state.width; w++) {
         for (var h = 0; h < state.height; h++) {
             var id = w + "-" + h
@@ -245,6 +259,142 @@ function updateDisplayWithState() {
         iDiv.appendChild(myDelete)
         document.getElementById('distanceUIList').appendChild(iDiv);
     }
+
+    document.getElementById('activityUIList').innerHTML = ""
+    for (var activityIndex = 0; activityIndex < state.activity.length; activityIndex++) {
+        var iDiv = document.createElement('div');
+        const select = document.createElement('select');
+        select.activityIndex = activityIndex;
+        select.id = "activitySelect" + activityIndex
+        select.style.width = "100px"
+        allPoints.forEach(function(option, index) {
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.text = option;
+            select.appendChild(opt);
+        });
+        select.value = state.activity[activityIndex].pt
+        select.addEventListener("change", (event) => {
+            var activityIndex = event.srcElement.activityIndex
+            var newVal = document.getElementById("activitySelect" + activityIndex).value
+            state.activity[activityIndex].pt = newVal
+            stateHasBeenUpdated()
+        })
+        iDiv.appendChild(select)
+        var inputField = document.createElement("INPUT");
+        inputField.setAttribute("type", "text");
+        inputField.activityIndex = activityIndex
+        inputField.myIndex = activityIndex
+        inputField.id = "midiCCactivity" + activityIndex
+        inputField.addEventListener('change', (event) => {
+            var i = event.srcElement.activityIndex
+            var newVal = parseInt(event.srcElement.value)
+            if (newVal > 128) {
+                newVal = nextMidiCC()
+            }
+            if (newVal < 0) {
+                newVal = nextMidiCC()
+            }
+            state.activity[i].cc = newVal
+            stateHasBeenUpdated()
+        })
+        inputField.value = state.activity[activityIndex].cc
+        iDiv.appendChild(inputField)
+
+        var myDelete = document.createElement('span');
+        myDelete.classList.add("deleteButton") // just for styling
+        myDelete.innerHTML = "delete"
+        myDelete.style.display = "inline-block"
+        myDelete.activityIndex = activityIndex
+        myDelete.addEventListener('click', (event) => {
+            var activityIndex = event.srcElement.activityIndex
+            state.activity.splice(activityIndex,1) // delete it!
+            stateHasBeenUpdated()
+        })
+        iDiv.appendChild(myDelete)
+        document.getElementById('activityUIList').appendChild(iDiv);
+    }
+
+    document.getElementById('xyUIList').innerHTML = ""
+    for (var xyIndex = 0; xyIndex < state.xy.length; xyIndex++) {
+        var iDiv = document.createElement('div');
+        const select = document.createElement('select');
+        select.xyIndex = xyIndex;
+        select.id = "xySelect" + xyIndex
+        select.style.width = "100px"
+        allPoints.forEach(function(option, index) {
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.text = option;
+            select.appendChild(opt);
+        });
+        select.value = state.xy[xyIndex].pt
+        select.addEventListener("change", (event) => {
+            var xyIndex = event.srcElement.xyIndex
+            var newVal = document.getElementById("xySelect" + xyIndex).value
+            state.xy[xyIndex].pt = newVal
+            stateHasBeenUpdated()
+        })
+        iDiv.appendChild(select)
+
+        const xyselect = document.createElement('select');
+        xyselect.xyIndex = xyIndex;
+        xyselect.id = "xyxyselect" + xyIndex
+        xyselect.style.width = "40px"
+        var lr = ['X','Y']
+        lr.forEach(function(option, index) {
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.text = option;
+            xyselect.appendChild(opt);
+        });
+        xyselect.value = state.xy[xyIndex].i ? 1 : 0
+        console.log("ooops")
+        console.log(state.xy[xyIndex].i)
+        console.log(xyIndex)
+        console.log(xyselect.value)
+
+        xyselect.addEventListener("change", (event) => {
+            var xyIndex = event.srcElement.xyIndex
+            var newVal = document.getElementById("xySelect" + xyIndex).value
+            state.xy[xyIndex].i = newVal
+            stateHasBeenUpdated()
+        })
+        iDiv.appendChild(xyselect)
+
+        var inputField = document.createElement("INPUT");
+        inputField.setAttribute("type", "text");
+        inputField.xyIndex = xyIndex
+        inputField.myIndex = xyIndex
+        inputField.id = "midiCCxy" + xyIndex
+        inputField.addEventListener('change', (event) => {
+            var i = event.srcElement.xyIndex
+            var newVal = parseInt(event.srcElement.value)
+            if (newVal > 128) {
+                newVal = nextMidiCC()
+            }
+            if (newVal < 0) {
+                newVal = nextMidiCC()
+            }
+            state.xy[i].cc = newVal
+            stateHasBeenUpdated()
+        })
+        inputField.value = state.xy[xyIndex].cc
+        iDiv.appendChild(inputField)
+
+        var myDelete = document.createElement('span');
+        myDelete.classList.add("deleteButton") // just for styling
+        myDelete.innerHTML = "delete"
+        myDelete.style.display = "inline-block"
+        myDelete.xyIndex = xyIndex
+        myDelete.addEventListener('click', (event) => {
+            var xyIndex = event.srcElement.xyIndex
+            state.xy.splice(xyIndex,1) // delete it!
+            stateHasBeenUpdated()
+        })
+        iDiv.appendChild(myDelete)
+        document.getElementById('xyUIList').appendChild(iDiv);
+    }
 }
 
 function initState() {
@@ -281,116 +431,6 @@ function initState() {
         if (pointLabelsToDo.includes(allPoints[i])) {
             document.getElementById('bodyMarkerList').appendChild(iDiv);
         }
-
-
-
-        // DO THE THING FOR ACTIVITY SENSOR
-
-        var iDiv = document.createElement('div');
-        var myLabel = document.createElement('span');
-        iDiv.id = 'activeSensorBodyMarker' + i;
-        myLabel.innerHTML = " " + allPoints[i]
-        var checkbox = document.createElement('input');
-        checkbox.type = "checkbox";
-        checkbox.myIndex = i
-        checkbox.id = "checkboxActivity" + i
-        checkbox.addEventListener('change', (event) => {
-            console.log(event.srcElement)
-            console.log(event.srcElement.myIndex)
-            var i = event.srcElement.myIndex
-            if (event.currentTarget.checked) {
-                console.log(i + ' checked');
-                state.activitySending[i] = nextMidiCC()
-            } else {
-                console.log(i + ' not checked');
-                state.activitySending[i] = -1
-            }
-            stateHasBeenUpdated()
-        })
-
-
-        var id = i
-        var inputField = document.createElement("INPUT");
-        inputField.setAttribute("type", "text");
-        inputField.myIndex = id
-        inputField.id = "midiCCactiity" + id
-        inputField.addEventListener('change', (event) => {
-            var i = event.srcElement.myIndex
-            var newVal = parseInt(event.srcElement.value)
-            if (newVal > 128) {
-                newVal = nextMidiCC()
-            }
-            if (newVal < 0) {
-                newVal = nextMidiCC()
-            }
-            state.activitySending[i] = newVal
-            stateHasBeenUpdated()
-        })
-
-        iDiv.appendChild(checkbox)
-        iDiv.appendChild(inputField)
-        iDiv.appendChild(myLabel)
-
-        if (pointLabelsToDo.includes(allPoints[i])) {
-            document.getElementById('bodyMarkerListActivity').appendChild(iDiv);
-        }
-
-
-        // DO THE THING FOR XY STUFF!!!!!
-
-        for (var doingItTwice = 0; doingItTwice < 2; doingItTwice++) {
-
-            var indexToUse = i + (doingItTwice * allPoints.length)
-            var labToUse = doingItTwice == 0 ? "X" : "Y"
-
-            var iDiv = document.createElement('div');
-            var myLabel = document.createElement('span');
-
-            iDiv.id = 'xySensorBodyMarker' + indexToUse;
-
-
-            myLabel.innerHTML = " " + labToUse + " " + allPoints[i]
-            var checkbox = document.createElement('input');
-            checkbox.type = "checkbox";
-            checkbox.myIndex = indexToUse
-            checkbox.id = "checkboxXY" + indexToUse
-            checkbox.addEventListener('change', (event) => {
-                console.log(event.srcElement.myIndex)
-                var i = event.srcElement.myIndex
-                if (event.currentTarget.checked) {
-                    console.log(i + ' checked');
-                    state.xySending[i] = nextMidiCC()
-                } else {
-                    console.log(i + ' not checked');
-                    state.xySending[i] = -1
-                }
-                stateHasBeenUpdated()
-            })
-
-            var inputField = document.createElement("INPUT");
-            inputField.setAttribute("type", "text");
-            inputField.myIndex = indexToUse
-            inputField.id = "midiCCxy" + indexToUse
-            inputField.addEventListener('change', (event) => {
-                var i = event.srcElement.myIndex
-                var newVal = parseInt(event.srcElement.value)
-                console.log(newVal)
-                if (newVal > 128) {
-                    newVal = nextMidiCC()
-                }
-                if (newVal < 0) {
-                    newVal = nextMidiCC()
-                }
-                state.xySending[i] = newVal
-                stateHasBeenUpdated()
-            })
-            iDiv.appendChild(checkbox)
-            iDiv.appendChild(inputField)
-            iDiv.appendChild(myLabel)
-            if (pointLabelsToDo.includes(allPoints[i])) {
-                document.getElementById('bodyMarkerListXY').appendChild(iDiv);
-            }
-        }
     }
 }
 
@@ -412,6 +452,25 @@ function addNewDistance() {
     stateHasBeenUpdated()
 }
 document.getElementById("addNewDistanceButton").onclick = addNewDistance
+
+function addNewActivity() {
+    state.activity.push({
+        pt: 0,
+        cc: nextMidiCC()
+    })
+    stateHasBeenUpdated()
+}
+document.getElementById("addNewActivityButton").onclick = addNewActivity
+
+function addNewXY() {
+    state.xy.push({
+        pt: 0,
+        i:0,
+        cc: nextMidiCC()
+    })
+    stateHasBeenUpdated()
+}
+document.getElementById("addNewXYButton").onclick = addNewXY
 
 
 function drawActiveBoxes() {
@@ -590,19 +649,19 @@ function doWholeSpecificFunction(result) {
         var wayPrevLandmark = prevlandmarks.shift()
 
         for (var i = 0; i < allPoints.length; i++) {
-            if (pointLabelsToDo.includes(allPoints[i])) {
-                var px1 = normalizedToPixelCoordinates(
-                    landmark[i].x,
-                    landmark[i].y,
-                    canvasElement.width,
-                    canvasElement.height)
+            var px1 = normalizedToPixelCoordinates(
+                landmark[i].x,
+                landmark[i].y,
+                canvasElement.width,
+                canvasElement.height)
 
-                var dx = (landmark[i].x - wayPrevLandmark[i].x)
-                var dy = (landmark[i].y - wayPrevLandmark[i].y)
-                var totalActivity = (dx * dx) + (dy * dy)
+            var dx = (landmark[i].x - wayPrevLandmark[i].x)
+            var dy = (landmark[i].y - wayPrevLandmark[i].y)
+            var totalActivity = (dx * dx) + (dy * dy)
 
-                if (state.activitySending[i] != -1) {
-                    sendMidiCC(state.activitySending[i], Math.round(totalActivity * 300))
+            for (var j = state.activity.length - 1; j >= 0; j--) {
+                if (state.activity[j].pt == i) {
+                    sendMidiCC(state.activity[j].cc, Math.round(totalActivity * 300))
                     canvasCtx.lineWidth = 0;
                     canvasCtx.strokeStyle = colorParams[colorID].primaryOutline;
                     canvasCtx.beginPath();
@@ -614,26 +673,32 @@ function doWholeSpecificFunction(result) {
                     canvasCtx.stroke();
                     canvasCtx.fill();
                 }
+            }
 
-                var widthOfCross = 50;
-                if (state.xySending[i] != -1) { // doing X
-                    sendMidiCC(state.xySending[i], 127 - (px1[0] * 126 / canvasElement.width))
-                    canvasCtx.beginPath();
-                    canvasCtx.lineWidth = 4;
-                    canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
-                    canvasCtx.moveTo(px1[0], px1[1] - widthOfCross)
-                    canvasCtx.lineTo(px1[0], px1[1] + widthOfCross)
-                    canvasCtx.stroke()
+            var widthOfCross = 50;
+            for (var j = state.xy.length - 1; j >= 0; j--) {
+                if (state.xy[j].pt == i) {
+                    if(state.xy[j].i == 0){ // doing x
+                        sendMidiCC(state.xy[j].cc, 127 - (px1[0] * 126 / canvasElement.width))
+                        canvasCtx.beginPath();
+                        canvasCtx.lineWidth = 4;
+                        canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
+                        canvasCtx.moveTo(px1[0], px1[1] - widthOfCross)
+                        canvasCtx.lineTo(px1[0], px1[1] + widthOfCross)
+                        canvasCtx.stroke()
+                    }
+                    if(state.xy[j].i == 1){ // doing y
+                        sendMidiCC(state.xy[j].cc, 127 - (px1[1] * 126 / canvasElement.height))
+                        canvasCtx.beginPath();
+                        canvasCtx.lineWidth = 4;
+                        canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
+                        canvasCtx.moveTo(px1[0] - widthOfCross, px1[1])
+                        canvasCtx.lineTo(px1[0] + widthOfCross, px1[1])
+                        canvasCtx.stroke()
+                    }
                 }
-                if (state.xySending[i + (allPoints.length)] != -1) { // doing Y
-                    sendMidiCC(state.xySending[i + allPoints.length], 127 - (px1[1] * 126 / canvasElement.height))
-                    canvasCtx.beginPath();
-                    canvasCtx.lineWidth = 4;
-                    canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
-                    canvasCtx.moveTo(px1[0] - widthOfCross, px1[1])
-                    canvasCtx.lineTo(px1[0] + widthOfCross, px1[1])
-                    canvasCtx.stroke()
-                }
+            }
+            if (pointLabelsToDo.includes(allPoints[i])) {
 
                 if (state.boxEnabled.includes(i)) {
                     canvasCtx.beginPath();
@@ -1029,6 +1094,35 @@ function updateStateToWorkWithCurrentStateObject(validState, newState){
     if(!('dist' in newState)){
         newState.dist = []
     }
+    if('activitySending' in newState){
+        if(!('activity' in newState)){
+            newState.activity = []
+        }
+        for(var i = 0; i < newState.activitySending.length;i++){
+            if(newState.activitySending[i] != -1){
+                newState.activity.push({
+                    pt:i,
+                    cc:newState.activitySending[i]
+                })
+            }
+        }
+        delete newState['activitySending']
+    }
+    if('xySending' in newState){
+        if(!('xy' in newState)){
+            newState.xy = []
+        }
+        for(var i = 0; i < newState.xySending.length;i++){
+            if(newState.xySending[i] != -1){
+                newState.xy.push({
+                    pt:i % allPoints.length,
+                    i: i >= allPoints.length,
+                    cc: newState.xySending[i]
+                })
+            }
+        }
+        delete newState['xySending']
+    }
     return newState
 }
 
@@ -1062,44 +1156,7 @@ getStateFromURL()
 
 // now set up things for the given state
 
-
 // var totalRects = state.width * state.height
-
-var allPoints = [
-    "nose",
-    "eye (inner) - L",
-    "eye - L",
-    "eye (outer) - L",
-    "eye (inner) - R",
-    "eye - R",
-    "eye (outer) - R",
-    "ear - L",
-    "ear - R",
-    "mouth - L",
-    "mouth - R",
-    "shoulder - L",
-    "shoulder - R",
-    "elbow - L",
-    "elbow - R",
-    "wrist - L",
-    "wrist - R",
-    "pinky - L",
-    "pinky - R",
-    "index - L",
-    "index - R",
-    "thumb - L",
-    "thumb - R",
-    "hip - L",
-    "hip - R",
-    "knee - L",
-    "knee - R",
-    "ankle - L",
-    "ankle - R",
-    "heel - L",
-    "heel - R",
-    "foot index  - L",
-    "foot index - R"
-]
 
 function stateHasBeenUpdated() {
     pushStateToURL()
@@ -1281,11 +1338,9 @@ document.getElementById("xyContentShowHide").onclick = function() {
 document.getElementById("angleContentShowHide").onclick = function() {
     showHide("angleContent")
 }
-
 document.getElementById("distanceContentShowHide").onclick = function() {
     showHide("distanceContent")
 }
-
 
 // DELETE THIS AFTER DEVELOPING ANGLES
 // showHide("spatialBoxesContent")
@@ -1402,35 +1457,26 @@ function createMidiMapDiv(ccnumb, label){
 function renderInsidesOfMidiModal(){
     document.getElementById("midimaplist").innerHTML = ""
     var divsToAdd = []
-    for (var i = 0; i < state.activitySending.length; i++) {
-        if(state.activitySending[i] != -1){
-            var activityLabel = allPoints[i]
-            var label = "activity: "+activityLabel
-            divsToAdd.push(createMidiMapDiv(state.activitySending[i], label))            
-        }
-    }
-    for (var i = 0; i < state.xySending.length; i++) {
-        if(state.xySending[i] != -1){
-            var xyLabel = allPoints[i% allPoints.length] 
-            var label = ""
-            if(i <  (allPoints.length)){
-                label = "XY: X "+xyLabel    
-            }else{
-                label = "XY: Y "+xyLabel    
-            }
-            divsToAdd.push(createMidiMapDiv(state.xySending[i], label))  
-        }
-    }
+
     for (var i = 0; i < state.angles.length; i++) {
         var angleLabel = allPoints[state.angles[i].pts[0]]+", "+allPoints[state.angles[i].pts[1]]+", "+allPoints[state.angles[i].pts[2]]
         var label = "angle: "+angleLabel
         divsToAdd.push(createMidiMapDiv(state.angles[i].cc, label))
     }
-
+    for (var i = 0; i < state.activity.length; i++) {
+        var activityLab = allPoints[state.activity[i].pt]
+        var label = "activity: "+activityLab
+        divsToAdd.push(createMidiMapDiv(state.activity[i].cc, label))
+    }
     for (var i = 0; i < state.dist.length; i++) {
         var distLabel = allPoints[state.dist[i].pts[0]]+", "+allPoints[state.dist[i].pts[1]]
         var label = state.dist[i].cc +" - distance: "+distLabel
         divsToAdd.push(createMidiMapDiv(state.dist[i].cc, label))
+    }
+    for (var i = 0; i < state.xy.length; i++) {
+        var xyLabel = allPoints[state.xy[i].pt]+" - "+(["X","Y"][state.xy[i].i])
+        var label = state.xy[i].cc +" - xy: "+xyLabel
+        divsToAdd.push(createMidiMapDiv(state.xy[i].cc, label))
     }
 
     // now sort them to display in order
