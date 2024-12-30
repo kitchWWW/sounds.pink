@@ -1454,6 +1454,11 @@ function renderInsidesOfMidiModal(){
     for(var i = 0; i < divsToAdd.length;i++){
         document.getElementById("midimaplist").appendChild(divsToAdd[i])
     }
+    if(divsToAdd.length == 0){
+        var newdiv = document.createElement("div")
+        newdiv.innerHTML = "No midi CC channels to send. Please create new outputs first, then come back here to map them."
+        document.getElementById("midimaplist").appendChild(newdiv)
+    }
 }
 
 // When the user clicks on the button, open the modal
