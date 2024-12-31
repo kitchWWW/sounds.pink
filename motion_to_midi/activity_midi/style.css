@@ -21,6 +21,38 @@ em {
   font-weight: bold;
 }
 
+.slider {
+  -webkit-appearance: none;
+  height: 8px;
+  border-radius: 5px;  
+  background: #222;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+  border-color: white;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%; 
+  background: #ccc;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #04AA6D;
+  cursor: pointer;
+}
+
+
+
 video {
   clear: both;
   display: block;
@@ -33,10 +65,34 @@ video {
 
 #enableMidi, #webcamButton {
   width: 100%;
+  background-color: #3171f1;
+}
+
+select{
+  padding: 1.5px;
+  margin: 1px;
+  border-radius: 2px;
+}
+
+#colorSelector{
+  background: #444;
+  color:white;
+  border: none;
+  padding: 5px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  border-radius: 5px;
 }
 
 #cameraSelect, #midiOutputDevices{
   width: 100%;
+  background: #444;
+  color:white;
+  border: none;
+  padding: 5px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  border-radius: 5px;
 }
 
 section {
@@ -196,8 +252,9 @@ input[type="text"] {
 }
 
 .prelab {
-  width: 50px;
+  width: 65px;
   display: inline-block; /* or block */
+  text-align: right;
 
 }
 .labelArea{
@@ -205,10 +262,18 @@ input[type="text"] {
   display: inline-block; /* or block */
 }
 
+
+.sectionTitle{
+  font-weight: bold;
+  display:inline-block;
+  width: 49%;
+}
 .showHide{
+    display:inline-block;
     font-style: italic;
     color: #cccccc;
-    display: none;
+    width: 49%;
+    text-align: right;
 }
 
 
@@ -249,7 +314,7 @@ input[type="text"] {
 }
 
 .deleteButton{
-  margin-left: 10px;
+  margin-left: 2px;
   font-size: small;
   display: none;
   border-radius: 5px;
@@ -282,9 +347,9 @@ input[type="text"] {
 
   background: rgb(75,75,75);
   background: linear-gradient(315deg, rgba(75,75,75,1) 16%, rgba(98,98,98,1) 100%);
-  margin: 15% auto; /* 15% from the top and centered */
+  margin: 20% auto; /* 15% from the top and centered */
   padding: 20px;
-  width: 80%; /* Could be more or less, depending on screen size */
+  width: 50%; /* Could be more or less, depending on screen size */
 }
 
 /* The Close Button */
@@ -314,3 +379,34 @@ input[type="text"] {
 .sendButtonNormal:hover{
   background: #222222 !important;
 }
+button:disabled{
+  background: #aaa;
+  color:#ccc;
+}
+button:disabled:hover{
+  background: #aaa;
+}
+button:hover{
+  background: #222222;
+}
+button{
+  background: #444;
+  color:white;
+  border: none;
+  padding: 5px;
+  margin:2px;
+  border-radius: 5px;
+}
+
+.addnewbutton{
+  border-radius: 2px;
+  background: white;
+  color: black;
+  padding: 3px 5px 3px 5px;
+  text-decoration: none;
+}
+.addnewbutton:hover{
+  background: #ccc;
+}
+
+

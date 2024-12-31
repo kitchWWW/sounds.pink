@@ -26,9 +26,10 @@
       </div>
       <div class="error" id="midiError">Hi! No Midi devices were found.<br><a href="https://help.ableton.com/hc/en-us/articles/209774225-Setting-up-a-virtual-MIDI-bus" target="_blank">Set up a virtual midi device</a>, <br>then refresh this page</div>
       <div style="display:none">debug:<input type="checkbox" id="debugOn"></div>
+
       Smoothing:<input type="range" min="1" max="10" value="3" class="slider" id="smoothingSlider">
       <br>
-      Overlay Color: <select name="colorSelector" id="colorSelector">
+      Overlay Color: <select name="colorSelector" id="colorSelector" class="colorSelector">
         <option value="dark">Dark</option>
         <option value="light">Light</option>
         <!-- <option value="colorful">Colorful</option> -->
@@ -38,24 +39,26 @@
     </div>
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>Regions</b> &nbsp; <span id="spatialBoxesContentShowHide" class="showHide">hide</span>
+        <div class="sectionTitleArea">
+          <div class="sectionTitle">Regions</div> <div id="spatialBoxesContentShowHide" class="showHide">hide</div>
+        </div>
         <div id="spatialBoxesContent" class="rowSmall">
           <div class="columnSmall">
-            Body Markers:
+            <span class="prelab">
+            columns:</span>
+            <input type="text" id="widthTextBox">
+            <br>
+            <span class="prelab">
+            rows:</span>
+            <input type="text" id="heightTextBox">
+            <br>
+            <br>
+            active markers:
             <div id="bodyMarkerList">
             </div>
           </div>
           <div class="columnSmall">
-            <span class="prelab">
-            width:</span>
-            <input type="text" id="widthTextBox">
-            <br>
-            <span class="prelab">
-            height:</span>
-            <input type="text" id="heightTextBox">
-            <br>
-            <br>
-            Regions:
+            active regions:
             <div id="boxesList">
             </div>
           </div>
@@ -64,41 +67,49 @@
     </div>
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>Activity</b> &nbsp; <span id="activityContentShowHide" class="showHide">hide</span>
+        <div class="sectionTitleArea">
+          <div class="sectionTitle">Activity</div> <div id="activityContentShowHide" class="showHide">hide</div>
+        </div>
         <div id="activityContent" >
           <div id="activityUIList">
           </div>
-          <button id="addNewActivityButton">add new activity</button>
+          <button id="addNewActivityButton" class="addnewbutton">+ new activity</button>
         </div>
       </div>
     </div>
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>Distance</b> &nbsp; <span id="distanceContentShowHide" class="showHide">hide</span>
+        <div class="sectionTitleArea">
+          <div class="sectionTitle">Distance</div> <div id="distanceContentShowHide" class="showHide">hide</div>
+        </div>
         <div id="distanceContent" >
           <div id="distanceUIList">
           </div>
-          <button id="addNewDistanceButton">add new distance</button>
+          <button id="addNewDistanceButton" class="addnewbutton">+ new distance</button>
         </div>
       </div>
     </div>
     <div class="rowSmall">
       <div class="LargeSection">
-        <b>Angle</b> &nbsp; <span id="angleContentShowHide" class="showHide">hide</span>
+        <div class="sectionTitleArea">
+          <div class="sectionTitle">Angle</div> <div id="angleContentShowHide" class="showHide">hide</div>
+        </div>
         <div id="angleContent" >
           <div id="angleUIList">
           </div>
-          <button id="addNewAngleButton">add new angle</button>
+          <button id="addNewAngleButton" class="addnewbutton"> + new angle</button>
         </div>
       </div>
     </div>
      <div class="rowSmall">
       <div class="LargeSection">
-        <b>XY</b> &nbsp; <span id="xyContentShowHide" class="showHide">hide</span>
+        <div class="sectionTitleArea">
+          <div class="sectionTitle">XY</div> <div id="xyContentShowHide" class="showHide">hide</div>
+        </div>
         <div id="xyContent" >
           <div id="xyUIList">
           </div>
-          <button id="addNewXYButton">add new xy</button>
+          <button id="addNewXYButton" class="addnewbutton">+ new xy</button>
         </div>
       </div>
     </div>

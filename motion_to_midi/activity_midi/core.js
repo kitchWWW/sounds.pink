@@ -149,7 +149,7 @@ function updateDisplayWithState() {
             select.angleIndex = angleIndex;
             select.pointIndex = pointIndex;
             select.id = "angleSelect" + angleIndex + ":" + pointIndex
-            select.style.width = "70px"
+            select.style.width = "79px"
             allPoints.forEach(function(option, index) {
                 const opt = document.createElement('option');
                 opt.value = index;
@@ -209,7 +209,7 @@ function updateDisplayWithState() {
             select.distanceIndex = distanceIndex;
             select.pointIndex = pointIndex;
             select.id = "distanceSelect" + distanceIndex + ":" + pointIndex
-            select.style.width = "100px"
+            select.style.width = "120px"
             allPoints.forEach(function(option, index) {
                 const opt = document.createElement('option');
                 opt.value = index;
@@ -1502,7 +1502,7 @@ function renderInsidesOfMidiModal(){
     }
     if(divsToAdd.length == 0){
         var newdiv = document.createElement("div")
-        newdiv.innerHTML = "No midi CC channels to send. Please create new outputs first, then come back here to map them."
+        newdiv.innerHTML = "No midi CC channels to send. Please create new outputs first by adding a new activity, distance, angle, or XY, and then come back here to map them."
         document.getElementById("midimaplist").appendChild(newdiv)
     }
 }
