@@ -348,7 +348,7 @@ function updateDisplayWithState() {
             opt.text = option;
             xyselect.appendChild(opt);
         });
-        xyselect.value = state.xy[xyIndex].i ? 1 : 0
+        xyselect.value = state.xy[xyIndex].i == 0 ? 0 : 1
         console.log("ooops")
         console.log(state.xy[xyIndex].i)
         console.log(xyIndex)
@@ -356,7 +356,10 @@ function updateDisplayWithState() {
 
         xyselect.addEventListener("change", (event) => {
             var xyIndex = event.srcElement.xyIndex
-            var newVal = document.getElementById("xySelect" + xyIndex).value
+            var newVal = document.getElementById("xyxyselect" + xyIndex).value
+            console.log("here!!!!")
+            console.log(newVal)
+            console.log(state.xy[xyIndex])
             state.xy[xyIndex].i = newVal
             stateHasBeenUpdated()
         })
@@ -678,6 +681,7 @@ function doWholeSpecificFunction(result) {
             var widthOfCross = 50;
             for (var j = state.xy.length - 1; j >= 0; j--) {
                 if (state.xy[j].pt == i) {
+                    console.log(state.xy[j].i)
                     if(state.xy[j].i == 0){ // doing x
                         sendMidiCC(state.xy[j].cc, 127 - (px1[0] * 126 / canvasElement.width))
                         canvasCtx.beginPath();
