@@ -436,7 +436,7 @@ function initState() {
 
 function addNewAngle() {
     state.angles.push({
-        pts: [0, 0, 0],
+        pts: [15, 11, 23],
         cc: nextMidiCC()
     })
     stateHasBeenUpdated()
@@ -446,7 +446,7 @@ document.getElementById("addNewAngleButton").onclick = addNewAngle
 
 function addNewDistance() {
     state.dist.push({
-        pts: [0, 0],
+        pts: [15, 16],
         cc: nextMidiCC()
     })
     stateHasBeenUpdated()
@@ -455,7 +455,7 @@ document.getElementById("addNewDistanceButton").onclick = addNewDistance
 
 function addNewActivity() {
     state.activity.push({
-        pt: 0,
+        pt: 27,
         cc: nextMidiCC()
     })
     stateHasBeenUpdated()
