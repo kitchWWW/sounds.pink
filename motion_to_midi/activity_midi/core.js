@@ -1392,6 +1392,7 @@ function sendPulse(clickedbutton, numb) {
             allsendbuttons[i].disabled = false;
             allsendbuttons[i].classList.add("sendButtonNormal")
             allsendbuttons[i].style.background = "#444"
+            allsendbuttons[i].innerHTML = "send pulse"
         }
     }, 600);
 
@@ -1446,9 +1447,20 @@ function createMidiMapDiv(ccnumb, label){
     sendButton.classList.add("sendButton")
     sendButton.classList.add("sendButtonNormal")
     sendButton.style.marginRight = "5px"
+    sendButton.style.width = "80px"
     sendButton.onclick = (event)=>{
-        console.log(event.target.ccNumber)
-        sendPulse(event.target, event.target.ccNumber)
+        event.target.innerHTML = "waiting..."
+        var doDelay = document.getElementById("doDelay").checked
+        var delayTime = 1
+        if(doDelay){
+            delayTime = 3000
+        }
+        console.log("Do Delay:" + delayTime)
+        setTimeout(()=>{
+            event.target.innerHTML = "sending..."
+            console.log(event.target.ccNumber)
+            sendPulse(event.target, event.target.ccNumber)            
+        },delayTime)
     }
     var labelSpan = document.createElement("span")
     labelSpan.innerHTML = ccnumb +" - "+label
@@ -1474,12 +1486,12 @@ function renderInsidesOfMidiModal(){
     }
     for (var i = 0; i < state.dist.length; i++) {
         var distLabel = allPoints[state.dist[i].pts[0]]+", "+allPoints[state.dist[i].pts[1]]
-        var label = state.dist[i].cc +" - distance: "+distLabel
+        var label = "distance: "+distLabel
         divsToAdd.push(createMidiMapDiv(state.dist[i].cc, label))
     }
     for (var i = 0; i < state.xy.length; i++) {
         var xyLabel = allPoints[state.xy[i].pt]+" - "+(["X","Y"][state.xy[i].i])
-        var label = state.xy[i].cc +" - xy: "+xyLabel
+        var label = "xy: "+xyLabel
         divsToAdd.push(createMidiMapDiv(state.xy[i].cc, label))
     }
 
@@ -1504,10 +1516,12 @@ function renderInsidesOfMidiModal(){
     for(var i = 0; i < divsToAdd.length;i++){
         document.getElementById("midimaplist").appendChild(divsToAdd[i])
     }
+    document.getElementById("delayCheckboxArea").style.display = "block"
     if(divsToAdd.length == 0){
         var newdiv = document.createElement("div")
         newdiv.innerHTML = "No midi CC channels to send. Please create new outputs first by adding a new activity, distance, angle, or XY, and then come back here to map them."
         document.getElementById("midimaplist").appendChild(newdiv)
+        document.getElementById("delayCheckboxArea").style.display = "none"
     }
 }
 
