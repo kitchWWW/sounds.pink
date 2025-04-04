@@ -82,6 +82,13 @@ function nextMidiCC() {
     return maxSoFar + 1
 }
 
+function toNoteName(midiNote) {
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const noteIndex = midiNote % 12;
+    const octave = Math.floor(midiNote / 12) - 1;
+    return noteNames[noteIndex] + octave;
+}
+
 var state = {
     boxEnabled: [],
     height: 4,
@@ -485,6 +492,9 @@ function drawActiveBoxes() {
             var myLabel = document.createElement('span');
             myLabel.classList.add("labelArea")
             myLabel.innerHTML = id
+
+            var myNoteLabel = document.createElement('span');
+
             iDiv.id = 'box-' + id;
 
             var checkbox = document.createElement('input');
@@ -520,9 +530,14 @@ function drawActiveBoxes() {
                 state.mappings[event.srcElement.myIndex] = newVal
                 stateHasBeenUpdated()
             })
+            if(state.mappings[id]){
+                myNoteLabel.innerHTML = " " +toNoteName(state.mappings[id])
+            }
+
             iDiv.appendChild(checkbox)
             iDiv.appendChild(myLabel)
             iDiv.appendChild(inputField)
+            iDiv.appendChild(myNoteLabel)
             document.getElementById('boxesList').appendChild(iDiv);
         }
     }
