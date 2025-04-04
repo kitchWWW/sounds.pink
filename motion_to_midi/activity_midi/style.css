@@ -1,7 +1,7 @@
 
 @use "@material";
 body {
-  font-family: roboto;
+  font-family: 'Roboto', sans-serif;;
   color: white;
   background: rgb(0,0,0);
   background: linear-gradient(13deg, rgba(0,0,0,1) 16%, rgba(60,60,60,1) 100%);
