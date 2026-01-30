@@ -71,6 +71,8 @@ document.getElementById("colorSelector").addEventListener("change", function() {
 
 var rectCounts = {}
 
+var currentCCValues = {}  // { ccNumber: { inputPercent: float, outputPercent: float } }
+
 var currMidiCC = 16
 
 function nextMidiCC() {
@@ -611,17 +613,40 @@ function sendNoteOff(id) {
     sendToMidi([0x80, state.mappings[id], 0])
 }
 
-function sendMidiCC(ccChan, val) {
-    if(midiMapIsOpen){
-        console.log("midi map open, not sending traditional midi cc");
-        return;
+function sendMidiCC(ccChan, val, max) {
+    // scaledMin/scaledMax define input thresholds (0-126 scale)
+    // Input below min → 0, above max → 126, between → interpolate to 0-126
+    var scaledMin = 0;
+    var scaledMax = 126
+    if(state.sc){// a scaling mapping store
+        if(state.sc[""+ccChan]){
+            scaledMin = state.sc[""+ccChan].n // min input threshold
+            scaledMax = state.sc[""+ccChan].x // max input threshold
+        }
     }
-    // we DO want to do rounding for free.
-    // we DON'T want to do minmaxing without alerting.
-    var valToCheck = Math.round(val)
-    var valToSend = Math.min(Math.max(valToCheck, 0), 126)
-    if (valToCheck != valToSend) {
-        console.log("ERROR: " + val + " != " + valToSend)
+
+    // Normalize input to 0-126 scale
+    var inputAs126 = (val / max) * 126
+    var inputPercent = (inputAs126 / 126) * 100
+
+    // Apply thresholds and interpolate
+    var valToSend;
+    if (inputAs126 <= scaledMin) {
+        valToSend = 0;
+    } else if (inputAs126 >= scaledMax) {
+        valToSend = 126;
+    } else {
+        // Linear interpolation between thresholds
+        valToSend = ((inputAs126 - scaledMin) / (scaledMax - scaledMin)) * 126;
+    }
+    valToSend = Math.round(valToSend);
+    var outputPercent = (valToSend / 126) * 100
+
+    // Store values for canvas display
+    currentCCValues[ccChan] = { inputPercent: inputPercent, outputPercent: outputPercent }
+
+    if(midiMapIsOpen){
+        return;
     }
     sendToMidi([0xB0, ccChan, valToSend])
 }
@@ -679,7 +704,7 @@ function doWholeSpecificFunction(result) {
 
             for (var j = state.activity.length - 1; j >= 0; j--) {
                 if (state.activity[j].pt == i) {
-                    sendMidiCC(state.activity[j].cc, Math.round(totalActivity * 300))
+                    sendMidiCC(state.activity[j].cc, totalActivity * 300, 127)
                     canvasCtx.lineWidth = 0;
                     canvasCtx.strokeStyle = colorParams[colorID].primaryOutline;
                     canvasCtx.beginPath();
@@ -698,7 +723,7 @@ function doWholeSpecificFunction(result) {
                 if (state.xy[j].pt == i) {
                     console.log(state.xy[j].i)
                     if(state.xy[j].i == 0){ // doing x
-                        sendMidiCC(state.xy[j].cc, 127 - (px1[0] * 126 / canvasElement.width))
+                        sendMidiCC(state.xy[j].cc, canvasElement.width - px1[0], canvasElement.width)
                         canvasCtx.beginPath();
                         canvasCtx.lineWidth = 4;
                         canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
@@ -707,7 +732,7 @@ function doWholeSpecificFunction(result) {
                         canvasCtx.stroke()
                     }
                     if(state.xy[j].i == 1){ // doing y
-                        sendMidiCC(state.xy[j].cc, 127 - (px1[1] * 126 / canvasElement.height))
+                        sendMidiCC(state.xy[j].cc, canvasElement.height - px1[1], canvasElement.height)
                         canvasCtx.beginPath();
                         canvasCtx.lineWidth = 4;
                         canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
@@ -756,7 +781,7 @@ function doWholeSpecificFunction(result) {
             var angleFormed = calculateAngle(px1, px2, px3)
 
             if(!isNaN(angleFormed)){
-                sendMidiCC(state.angles[angleIndex].cc,Math.floor(angleFormed * (127/180)))                
+                sendMidiCC(state.angles[angleIndex].cc, angleFormed, 180)
             }
             canvasCtx.beginPath();
             canvasCtx.lineWidth = 4;
@@ -789,7 +814,8 @@ function doWholeSpecificFunction(result) {
                 canvasElement.height)
             var distanceBetween = calculateDistance(px1, px2)
             if(!isNaN(distanceBetween)){
-                sendMidiCC(state.dist[distanceIndex].cc,Math.floor(128 * distanceBetween / (canvasElement.width)))
+                var diagonal = Math.sqrt(canvasElement.width * canvasElement.width + canvasElement.height * canvasElement.height)
+                sendMidiCC(state.dist[distanceIndex].cc, distanceBetween, diagonal)
             }
             canvasCtx.beginPath();
             canvasCtx.lineWidth = 4;
@@ -802,12 +828,18 @@ function doWholeSpecificFunction(result) {
         prevlandmarks.push(JSON.parse(JSON.stringify(landmark)));
         oldRectCounts = processRectCounts(newRectCounts)
     }
+
+    // Update scaling canvases if modal is open
+    if (midiMapIsOpen) {
+        updateAllScalingCanvases();
+    }
+
     canvasCtx.restore();
 }
 
 function clearEverything() {
     for (var i = 0; i < 40; i++) {
-        sendMidiCC(14 + i, 0)
+        sendMidiCC(14 + i, 0, 127)
         prevlandmarks = null
     }
 
@@ -1225,6 +1257,7 @@ const createPoseLandmarker = async () => {
         numPoses: 1
     });
     enableWebcamButton.disabled = false;
+    enableWebcamButton.innerHTML = "turn on camera";
 };
 createPoseLandmarker();
 
@@ -1244,6 +1277,7 @@ const hasGetUserMedia = () => {
 if (hasGetUserMedia()) {
     enableWebcamButton = document.getElementById("webcamButton");
     enableWebcamButton.disabled = true;
+    enableWebcamButton.innerHTML = "loading...";
     enableWebcamButton.addEventListener("click", enableCam);
 } else {
     console.warn("getUserMedia() is not supported by your browser");
@@ -1454,6 +1488,153 @@ function sendMidiWith(value) {
     console.log("Sending MIDI value:", value);
 }
 
+// Scaling canvas functions
+function createScalingCanvas(ccnumb) {
+    var canvas = document.createElement("canvas");
+    canvas.id = "scalingCanvas_" + ccnumb;
+    canvas.ccNumber = ccnumb;
+    canvas.width = 160;
+    canvas.height = 24;
+    canvas.style.borderRadius = "3px";
+    canvas.style.marginRight = "8px";
+    canvas.style.verticalAlign = "middle";
+    canvas.style.cursor = "pointer";
+    canvas.style.background = "#222";
+
+    // Track dragging state
+    canvas.dragging = null; // 'min' or 'max' or null
+
+    canvas.addEventListener("mousedown", function(e) {
+        var rect = canvas.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var percent = (x / canvas.width) * 100;
+
+        // Get current min/max
+        var minPercent = 0;
+        var maxPercent = 100;
+        if (state.sc && state.sc["" + ccnumb]) {
+            minPercent = (state.sc["" + ccnumb].n / 126) * 100;
+            maxPercent = (state.sc["" + ccnumb].x / 126) * 100;
+        }
+
+        // Determine which line is closer
+        var distToMin = Math.abs(percent - minPercent);
+        var distToMax = Math.abs(percent - maxPercent);
+
+        if (distToMin < distToMax && distToMin < 10) {
+            canvas.dragging = 'min';
+        } else if (distToMax < 10) {
+            canvas.dragging = 'max';
+        } else if (distToMin < distToMax) {
+            canvas.dragging = 'min';
+        } else {
+            canvas.dragging = 'max';
+        }
+    });
+
+    canvas.addEventListener("mousemove", function(e) {
+        if (!canvas.dragging) return;
+
+        var rect = canvas.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var percent = Math.max(0, Math.min(100, (x / canvas.width) * 100));
+        var midiVal = Math.round((percent / 100) * 126);
+
+        // Initialize state.sc if needed
+        if (!state.sc) state.sc = {};
+        if (!state.sc["" + ccnumb]) state.sc["" + ccnumb] = { n: 0, x: 126 };
+
+        if (canvas.dragging === 'min') {
+            // Don't let min exceed max
+            var currentMax = state.sc["" + ccnumb].x;
+            state.sc["" + ccnumb].n = Math.min(midiVal, currentMax);
+        } else if (canvas.dragging === 'max') {
+            // Don't let max go below min
+            var currentMin = state.sc["" + ccnumb].n;
+            state.sc["" + ccnumb].x = Math.max(midiVal, currentMin);
+        }
+
+        drawScalingCanvas(canvas);
+        stateHasBeenUpdated();
+    });
+
+    canvas.addEventListener("mouseup", function(e) {
+        canvas.dragging = null;
+    });
+
+    canvas.addEventListener("mouseleave", function(e) {
+        canvas.dragging = null;
+    });
+
+    return canvas;
+}
+
+function drawScalingCanvas(canvas) {
+    var ctx = canvas.getContext("2d");
+    var width = canvas.width;
+    var height = canvas.height;
+    var ccnumb = canvas.ccNumber;
+
+    // Clear and draw background
+    ctx.fillStyle = "#222";
+    ctx.fillRect(0, 0, width, height);
+
+    // Get current values
+    var inputPercent = 0;
+    var outputPercent = 0;
+    if (currentCCValues[ccnumb]) {
+        inputPercent = currentCCValues[ccnumb].inputPercent;
+        outputPercent = currentCCValues[ccnumb].outputPercent;
+    }
+
+    // Get min/max settings
+    var minPercent = 0;
+    var maxPercent = 100;
+    if (state.sc && state.sc["" + ccnumb]) {
+        minPercent = (state.sc["" + ccnumb].n / 126) * 100;
+        maxPercent = (state.sc["" + ccnumb].x / 126) * 100;
+    }
+
+    var barHeight = 8;
+    var topBarY = 2;
+    var bottomBarY = height - barHeight - 2;
+
+    // Top bar (input) - purple
+    ctx.fillStyle = "#c850c8";
+    ctx.fillRect(0, topBarY, (inputPercent / 100) * width, barHeight);
+
+    // Bottom bar (output) - darker purple
+    ctx.fillStyle = "#a030a0";
+    ctx.fillRect(0, bottomBarY, (outputPercent / 100) * width, barHeight);
+
+    // Draw min line (white)
+    var minX = (minPercent / 100) * width;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(minX, 0);
+    ctx.lineTo(minX, height);
+    ctx.stroke();
+
+    // Draw max line (white)
+    var maxX = (maxPercent / 100) * width;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(maxX, 0);
+    ctx.lineTo(maxX, height);
+    ctx.stroke();
+}
+
+function updateAllScalingCanvases() {
+    for (var ccnumb in currentCCValues) {
+        var canvas = document.getElementById("scalingCanvas_" + ccnumb);
+        if (canvas) {
+            drawScalingCanvas(canvas);
+        }
+    }
+}
+
 function createMidiMapDiv(ccnumb, label){
     var newdiv = document.createElement("div")
     var sendButton = document.createElement("button")
@@ -1477,11 +1658,17 @@ function createMidiMapDiv(ccnumb, label){
             sendPulse(event.target, event.target.ccNumber)            
         },delayTime)
     }
+    var scalingCanvas = createScalingCanvas(ccnumb)
     var labelSpan = document.createElement("span")
     labelSpan.innerHTML = ccnumb +" - "+label
     newdiv.appendChild(sendButton)
+    newdiv.appendChild(scalingCanvas)
     newdiv.appendChild(labelSpan)
     newdiv.ccNumber = ccnumb
+
+    // Initial draw
+    drawScalingCanvas(scalingCanvas)
+
     return newdiv
 }
 

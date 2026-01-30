@@ -349,7 +349,7 @@ input[type="text"] {
   background: linear-gradient(315deg, rgba(75,75,75,1) 16%, rgba(98,98,98,1) 100%);
   margin: 20% auto; /* 15% from the top and centered */
   padding: 20px;
-  width: 50%; /* Could be more or less, depending on screen size */
+  width: 80%; /* Could be more or less, depending on screen size */
 }
 
 /* The Close Button */
