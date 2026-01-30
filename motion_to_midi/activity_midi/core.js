@@ -1224,6 +1224,7 @@ const createPoseLandmarker = async () => {
         runningMode: runningMode,
         numPoses: 1
     });
+    enableWebcamButton.disabled = false;
 };
 createPoseLandmarker();
 
@@ -1242,6 +1243,7 @@ const hasGetUserMedia = () => {
 // wants to activate it.
 if (hasGetUserMedia()) {
     enableWebcamButton = document.getElementById("webcamButton");
+    enableWebcamButton.disabled = true;
     enableWebcamButton.addEventListener("click", enableCam);
 } else {
     console.warn("getUserMedia() is not supported by your browser");
@@ -1255,15 +1257,10 @@ function enableCam(event) {
         console.log("Wait! poseLandmaker not loaded yet.");
         return;
     }
-    if (webcamRunning === true) {
-        webcamRunning = false;
-        enableWebcamButton.innerText = "ENABLE PREDICTIONS";
-    } else {
-        webcamRunning = true;
-        enableWebcamButton.innerText = "DISABLE PREDICTIONS";
-        enableWebcamButton.style.display = "none"
-        document.getElementById("cameraSelect").style.display = "block"
-    }
+    
+    enableWebcamButton.style.display = "none"
+    document.getElementById("cameraSelect").style.display = "block"
+
     // getUsermedia parameters.
     const constraints = {
         video: true
@@ -1289,6 +1286,9 @@ async function predictWebcam() {
     video.style.height = idealHeight // videoHeight;
     canvasElement.style.width = idealWidth // videoWidth;
     video.style.width = idealWidth // videoWidth;
+
+    // Show the video container now that dimensions are set
+    document.getElementById("wholeThingMaybe").style.display = "block";
 
     // Now let's start detecting the stream.
     if (runningMode === "IMAGE") {
