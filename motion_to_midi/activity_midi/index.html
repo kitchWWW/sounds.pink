@@ -24,6 +24,11 @@
         <select id="cameraSelect" style="display:none"></select>
         <button id="enableMidi">turn on midi</button>
         <select id="midiOutputDevices" style="display: none;"></select>
+        <br>
+        Model: <select id="modelSelector">
+          <option value="p-mp">Pose</option>
+          <option value="h-mp">Hands</option>
+        </select>
       </div>
       <div class="error" id="midiError">Hi! No Midi devices were found.<br><a href="https://youtu.be/p8YiQ2VhXbA" target="_blank">Set up a virtual midi device</a>, <br>then refresh this page</div>
       <div style="display:none">debug:<input type="checkbox" id="debugOn"></div>

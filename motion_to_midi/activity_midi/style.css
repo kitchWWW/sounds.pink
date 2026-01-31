@@ -95,6 +95,16 @@ select{
   border-radius: 5px;
 }
 
+#modelSelector{
+  background: #444;
+  color:white;
+  border: none;
+  padding: 5px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+}
+
 section {
   opacity: 1;
   transition: opacity 500ms ease-in-out;

@@ -26,7 +26,8 @@ var colorParams = {
     },
 }
 
-var allPoints = [
+// Pose model landmarks (33 points)
+var poseAllPoints = [
     "nose",
     "eye (inner) - L",
     "eye - L",
@@ -61,6 +62,233 @@ var allPoints = [
     "foot index  - L",
     "foot index - R"
 ]
+
+var posePrimaryPoints = [
+    "nose",
+    "ear - L",
+    "ear - R",
+    "shoulder - L",
+    "shoulder - R",
+    "elbow - L",
+    "elbow - R",
+    "wrist - L",
+    "wrist - R",
+    "hip - L",
+    "hip - R",
+    "knee - L",
+    "knee - R",
+    "ankle - L",
+    "ankle - R",
+]
+
+// Hand model landmarks (21 points per hand, we'll track both hands)
+// Joint labels without L/R for dropdown (21 items)
+var handJointLabels = [
+    "wrist",
+    "thumb 0 (base)",
+    "thumb 1",
+    "thumb 2",
+    "thumb 3 (tip)",
+    "index 0 (base)",
+    "index 1",
+    "index 2",
+    "index 3 (tip)",
+    "middle 0 (base)",
+    "middle 1",
+    "middle 2",
+    "middle 3 (tip)",
+    "ring 0 (base)",
+    "ring 1",
+    "ring 2",
+    "ring 3 (tip)",
+    "pinky 0 (base)",
+    "pinky 1",
+    "pinky 2",
+    "pinky 3 (tip)"
+]
+
+var handAllPoints = [
+    "wrist - L",
+    "thumb 0 (base) - L",
+    "thumb 1 - L",
+    "thumb 2 - L",
+    "thumb 3 (tip) - L",
+    "index 0 (base) - L",
+    "index 1 - L",
+    "index 2 - L",
+    "index 3 (tip) - L",
+    "middle 0 (base) - L",
+    "middle 1 - L",
+    "middle 2 - L",
+    "middle 3 (tip) - L",
+    "ring 0 (base) - L",
+    "ring 1 - L",
+    "ring 2 - L",
+    "ring 3 (tip) - L",
+    "pinky 0 (base) - L",
+    "pinky 1 - L",
+    "pinky 2 - L",
+    "pinky 3 (tip) - L",
+    "wrist - R",
+    "thumb 0 (base) - R",
+    "thumb 1 - R",
+    "thumb 2 - R",
+    "thumb 3 (tip) - R",
+    "index 0 (base) - R",
+    "index 1 - R",
+    "index 2 - R",
+    "index 3 (tip) - R",
+    "middle 0 (base) - R",
+    "middle 1 - R",
+    "middle 2 - R",
+    "middle 3 (tip) - R",
+    "ring 0 (base) - R",
+    "ring 1 - R",
+    "ring 2 - R",
+    "ring 3 (tip) - R",
+    "pinky 0 (base) - R",
+    "pinky 1 - R",
+    "pinky 2 - R",
+    "pinky 3 (tip) - R"
+]
+
+// Hand primary points with index (into handAllPoints) and display label
+var handPrimaryPointsData = [
+    { index: 0, label: "wrist - L" },
+    { index: 21, label: "wrist - R" },
+    { index: 1, label: "thumb (base) - L" },
+    { index: 22, label: "thumb (base) - R" },
+    { index: 4, label: "thumb (tip) - L" },
+    { index: 25, label: "thumb (tip) - R" },
+    { index: 8, label: "index (tip) - L" },
+    { index: 29, label: "index (tip) - R" },
+    { index: 12, label: "middle (tip) - L" },
+    { index: 33, label: "middle (tip) - R" },
+    { index: 16, label: "ring (tip) - L" },
+    { index: 37, label: "ring (tip) - R" },
+    { index: 17, label: "pinky (base) - L" },
+    { index: 38, label: "pinky (base) - R" },
+    { index: 20, label: "pinky (tip) - L" },
+    { index: 41, label: "pinky (tip) - R" },
+];
+
+// For backward compatibility (used by pointLabelsToDo assignment)
+var handPrimaryPoints = handPrimaryPointsData.map(function(p) { return p.label; });
+
+// Helper: check if an index is a primary point
+function isPrimaryPoint(index) {
+    if (getCurrentModel() === "h-mp") {
+        return handPrimaryPointsData.some(function(p) { return p.index === index; });
+    } else {
+        return posePrimaryPoints.includes(poseAllPoints[index]);
+    }
+}
+
+// Helper: get display label for a primary point index
+function getPrimaryLabel(index) {
+    if (getCurrentModel() === "h-mp") {
+        var found = handPrimaryPointsData.find(function(p) { return p.index === index; });
+        return found ? found.label : allPoints[index];
+    } else {
+        return allPoints[index];
+    }
+}
+
+// Helper functions to convert between hand index and L/R + joint index
+function handIndexToLRAndJoint(index) {
+    if (index < 21) {
+        return { hand: "L", joint: index };
+    } else {
+        return { hand: "R", joint: index - 21 };
+    }
+}
+
+function lrAndJointToHandIndex(hand, joint) {
+    return hand === "R" ? parseInt(joint) + 21 : parseInt(joint);
+}
+
+// Create a point selector - returns either a single dropdown (pose) or dual dropdowns (hand)
+// Optional jointWidth parameter to customize joint dropdown width (default 90px)
+function createPointSelector(currentIndex, onChangeCallback, idPrefix, jointWidth) {
+    var container = document.createElement('span');
+    jointWidth = jointWidth || "90px";
+
+    if (getCurrentModel() === "h-mp") {
+        // Hand mode: two dropdowns (L/R and joint)
+        var lrSelect = document.createElement('select');
+        lrSelect.style.width = "32px";
+        lrSelect.id = idPrefix + "_lr";
+        ["L", "R"].forEach(function(hand) {
+            var opt = document.createElement('option');
+            opt.value = hand;
+            opt.text = hand;
+            lrSelect.appendChild(opt);
+        });
+
+        var jointSelect = document.createElement('select');
+        jointSelect.style.width = jointWidth;
+        jointSelect.id = idPrefix + "_joint";
+        handJointLabels.forEach(function(label, index) {
+            var opt = document.createElement('option');
+            opt.value = index;
+            opt.text = label;
+            jointSelect.appendChild(opt);
+        });
+
+        // Set current values
+        var current = handIndexToLRAndJoint(currentIndex);
+        lrSelect.value = current.hand;
+        jointSelect.value = current.joint;
+
+        // Change handlers
+        var updateValue = function() {
+            var newIndex = lrAndJointToHandIndex(lrSelect.value, jointSelect.value);
+            onChangeCallback(newIndex);
+        };
+        lrSelect.addEventListener("change", updateValue);
+        jointSelect.addEventListener("change", updateValue);
+
+        container.appendChild(lrSelect);
+        container.appendChild(jointSelect);
+    } else {
+        // Pose mode: single dropdown
+        var select = document.createElement('select');
+        select.style.width = "120px";
+        select.id = idPrefix;
+        allPoints.forEach(function(option, index) {
+            var opt = document.createElement('option');
+            opt.value = index;
+            opt.text = option;
+            select.appendChild(opt);
+        });
+        select.value = currentIndex;
+        select.addEventListener("change", function() {
+            onChangeCallback(parseInt(select.value));
+        });
+        container.appendChild(select);
+    }
+
+    return container;
+}
+
+// Dynamic point arrays based on current model
+var allPoints = poseAllPoints
+var pointLabelsToDo = posePrimaryPoints
+
+function getCurrentModel() {
+    return state.md || "p-mp"
+}
+
+function updatePointArraysForModel() {
+    var model = getCurrentModel()
+    if (model === "h-mp") {
+        allPoints = handAllPoints
+        pointLabelsToDo = handPrimaryPoints
+    } else {
+        allPoints = poseAllPoints
+        pointLabelsToDo = posePrimaryPoints
+    }
+}
 
 
 var colorID = "dark"
@@ -101,27 +329,9 @@ var state = {
     angles: [],
     dist: [],
     xy:[],
-    activity:[]
+    activity:[],
+    md: "p-mp" // model: "p-mp" (pose-mediapipe) or "h-mp" (hand-mediapipe)
 }
-
-
-var pointLabelsToDo = [
-    "nose",
-    "ear - L",
-    "ear - R",
-    "shoulder - L",
-    "shoulder - R",
-    "elbow - L",
-    "elbow - R",
-    "wrist - L",
-    "wrist - R",
-    "hip - L",
-    "hip - R",
-    "knee - L",
-    "knee - R",
-    "ankle - L",
-    "ankle - R",
-]
 
 
 function updateDisplayWithState() {
@@ -130,8 +340,11 @@ function updateDisplayWithState() {
     document.getElementById("heightTextBox").value = state.height
     drawActiveBoxes()
      for (var i = 0; i < allPoints.length; i++) {
-        if (pointLabelsToDo.includes(allPoints[i])) {
-            document.getElementById("checkbox" + i).checked = state.boxEnabled.includes(i)
+        if (isPrimaryPoint(i)) {
+            var checkbox = document.getElementById("checkbox" + i)
+            if (checkbox) {
+                checkbox.checked = state.boxEnabled.includes(i)
+            }
         }
     }
 
@@ -151,29 +364,30 @@ function updateDisplayWithState() {
 
     // and now we move on to doing the angle state update. Because this one is complex as shit, we actually have to create and destory most of the UI every single time.
     document.getElementById('angleUIList').innerHTML = ""
+    var isHandMode = getCurrentModel() === "h-mp";
     for (var angleIndex = 0; angleIndex < state.angles.length; angleIndex++) {
         var iDiv = document.createElement('div');
+        if (isHandMode) {
+            iDiv.style.marginBottom = "10px";
+            iDiv.style.paddingBottom = "10px";
+            iDiv.style.borderBottom = "1px solid #444";
+        }
         for (var pointIndex = 0; pointIndex < 3; pointIndex++) {
-            const select = document.createElement('select');
-            select.angleIndex = angleIndex;
-            select.pointIndex = pointIndex;
-            select.id = "angleSelect" + angleIndex + ":" + pointIndex
-            select.style.width = "79px"
-            allPoints.forEach(function(option, index) {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.text = option;
-                select.appendChild(opt);
-            });
-            select.value = state.angles[angleIndex].pts[pointIndex]
-            select.addEventListener("change", (event) => {
-                var angleIndex = event.srcElement.angleIndex
-                var pointIndex = event.srcElement.pointIndex
-                var newVal = document.getElementById("angleSelect" + angleIndex + ":" + pointIndex).value
-                state.angles[angleIndex].pts[pointIndex] = newVal
-                stateHasBeenUpdated()
-            })
-            iDiv.appendChild(select)
+            (function(ai, pi) {
+                var selector = createPointSelector(
+                    state.angles[ai].pts[pi],
+                    function(newVal) {
+                        state.angles[ai].pts[pi] = newVal;
+                        stateHasBeenUpdated();
+                    },
+                    "angleSelect" + ai + "_" + pi,
+                    isHandMode ? "120px" : null
+                );
+                iDiv.appendChild(selector);
+                if (isHandMode) {
+                    iDiv.appendChild(document.createElement('br'));
+                }
+            })(angleIndex, pointIndex);
         }
         var inputField = document.createElement("INPUT");
         inputField.setAttribute("type", "text");
@@ -214,26 +428,17 @@ function updateDisplayWithState() {
     for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
         var iDiv = document.createElement('div');
         for (var pointIndex = 0; pointIndex < 2; pointIndex++) {
-            const select = document.createElement('select');
-            select.distanceIndex = distanceIndex;
-            select.pointIndex = pointIndex;
-            select.id = "distanceSelect" + distanceIndex + ":" + pointIndex
-            select.style.width = "120px"
-            allPoints.forEach(function(option, index) {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.text = option;
-                select.appendChild(opt);
-            });
-            select.value = state.dist[distanceIndex].pts[pointIndex]
-            select.addEventListener("change", (event) => {
-                var distanceIndex = event.srcElement.distanceIndex
-                var pointIndex = event.srcElement.pointIndex
-                var newVal = document.getElementById("distanceSelect" + distanceIndex + ":" + pointIndex).value
-                state.dist[distanceIndex].pts[pointIndex] = newVal
-                stateHasBeenUpdated()
-            })
-            iDiv.appendChild(select)
+            (function(di, pi) {
+                var selector = createPointSelector(
+                    state.dist[di].pts[pi],
+                    function(newVal) {
+                        state.dist[di].pts[pi] = newVal;
+                        stateHasBeenUpdated();
+                    },
+                    "distanceSelect" + di + "_" + pi
+                );
+                iDiv.appendChild(selector);
+            })(distanceIndex, pointIndex);
         }
         var inputField = document.createElement("INPUT");
         inputField.setAttribute("type", "text");
@@ -272,24 +477,17 @@ function updateDisplayWithState() {
     document.getElementById('activityUIList').innerHTML = ""
     for (var activityIndex = 0; activityIndex < state.activity.length; activityIndex++) {
         var iDiv = document.createElement('div');
-        const select = document.createElement('select');
-        select.activityIndex = activityIndex;
-        select.id = "activitySelect" + activityIndex
-        select.style.width = "100px"
-        allPoints.forEach(function(option, index) {
-            const opt = document.createElement('option');
-            opt.value = index;
-            opt.text = option;
-            select.appendChild(opt);
-        });
-        select.value = state.activity[activityIndex].pt
-        select.addEventListener("change", (event) => {
-            var activityIndex = event.srcElement.activityIndex
-            var newVal = document.getElementById("activitySelect" + activityIndex).value
-            state.activity[activityIndex].pt = newVal
-            stateHasBeenUpdated()
-        })
-        iDiv.appendChild(select)
+        (function(ai) {
+            var selector = createPointSelector(
+                state.activity[ai].pt,
+                function(newVal) {
+                    state.activity[ai].pt = newVal;
+                    stateHasBeenUpdated();
+                },
+                "activitySelect" + ai
+            );
+            iDiv.appendChild(selector);
+        })(activityIndex);
         var inputField = document.createElement("INPUT");
         inputField.setAttribute("type", "text");
         inputField.activityIndex = activityIndex
@@ -327,24 +525,17 @@ function updateDisplayWithState() {
     document.getElementById('xyUIList').innerHTML = ""
     for (var xyIndex = 0; xyIndex < state.xy.length; xyIndex++) {
         var iDiv = document.createElement('div');
-        const select = document.createElement('select');
-        select.xyIndex = xyIndex;
-        select.id = "xySelect" + xyIndex
-        select.style.width = "100px"
-        allPoints.forEach(function(option, index) {
-            const opt = document.createElement('option');
-            opt.value = index;
-            opt.text = option;
-            select.appendChild(opt);
-        });
-        select.value = state.xy[xyIndex].pt
-        select.addEventListener("change", (event) => {
-            var xyIndex = event.srcElement.xyIndex
-            var newVal = document.getElementById("xySelect" + xyIndex).value
-            state.xy[xyIndex].pt = newVal
-            stateHasBeenUpdated()
-        })
-        iDiv.appendChild(select)
+        (function(xi) {
+            var selector = createPointSelector(
+                state.xy[xi].pt,
+                function(newVal) {
+                    state.xy[xi].pt = newVal;
+                    stateHasBeenUpdated();
+                },
+                "xySelect" + xi
+            );
+            iDiv.appendChild(selector);
+        })(xyIndex);
 
         const xyselect = document.createElement('select');
         xyselect.xyIndex = xyIndex;
@@ -358,17 +549,10 @@ function updateDisplayWithState() {
             xyselect.appendChild(opt);
         });
         xyselect.value = state.xy[xyIndex].i == 0 ? 0 : 1
-        console.log("ooops")
-        console.log(state.xy[xyIndex].i)
-        console.log(xyIndex)
-        console.log(xyselect.value)
 
         xyselect.addEventListener("change", (event) => {
             var xyIndex = event.srcElement.xyIndex
             var newVal = document.getElementById("xyxyselect" + xyIndex).value
-            console.log("here!!!!")
-            console.log(newVal)
-            console.log(state.xy[xyIndex])
             state.xy[xyIndex].i = newVal
             stateHasBeenUpdated()
         })
@@ -411,11 +595,12 @@ function updateDisplayWithState() {
 
 function initState() {
     for (var i = 0; i < allPoints.length; i++) {
+        if (!isPrimaryPoint(i)) continue;
         var iDiv = document.createElement('div');
         var myLabel = document.createElement('span');
         iDiv.id = 'activeMarkerDiv' + i;
         // iDiv.className = 'block';
-        myLabel.innerHTML = " " + allPoints[i]
+        myLabel.innerHTML = " " + getPrimaryLabel(i)
         var checkbox = document.createElement('input');
         checkbox.type = "checkbox";
         checkbox.myIndex = i
@@ -440,15 +625,46 @@ function initState() {
         })
         iDiv.appendChild(checkbox)
         iDiv.appendChild(myLabel)
-        if (pointLabelsToDo.includes(allPoints[i])) {
-            document.getElementById('bodyMarkerList').appendChild(iDiv);
-        }
+        document.getElementById('bodyMarkerList').appendChild(iDiv);
+    }
+}
+
+function getDefaultAnglePts() {
+    // Return sensible defaults based on current model
+    if (getCurrentModel() === "h-mp") {
+        return [0, 5, 8]; // wrist, index 0 (palm), index 3 (tip) - left hand
+    } else {
+        return [15, 11, 23]; // wrist L, shoulder L, hip L
+    }
+}
+
+function getDefaultDistancePts() {
+    if (getCurrentModel() === "h-mp") {
+        return [4, 8]; // thumb 3 (tip), index 3 (tip) - left hand
+    } else {
+        return [15, 16]; // wrist L, wrist R
+    }
+}
+
+function getDefaultActivityPt() {
+    if (getCurrentModel() === "h-mp") {
+        return 8; // index 3 (tip) - left hand
+    } else {
+        return 15; // wrist L
+    }
+}
+
+function getDefaultXYPt() {
+    if (getCurrentModel() === "h-mp") {
+        return 0; // wrist - left hand
+    } else {
+        return 0; // nose
     }
 }
 
 function addNewAngle() {
     state.angles.push({
-        pts: [15, 11, 23],
+        pts: getDefaultAnglePts(),
         cc: nextMidiCC()
     })
     stateHasBeenUpdated()
@@ -458,7 +674,7 @@ document.getElementById("addNewAngleButton").onclick = addNewAngle
 
 function addNewDistance() {
     state.dist.push({
-        pts: [15, 16],
+        pts: getDefaultDistancePts(),
         cc: nextMidiCC()
     })
     stateHasBeenUpdated()
@@ -467,7 +683,7 @@ document.getElementById("addNewDistanceButton").onclick = addNewDistance
 
 function addNewActivity() {
     state.activity.push({
-        pt: 27,
+        pt: getDefaultActivityPt(),
         cc: nextMidiCC()
     })
     stateHasBeenUpdated()
@@ -476,7 +692,7 @@ document.getElementById("addNewActivityButton").onclick = addNewActivity
 
 function addNewXY() {
     state.xy.push({
-        pt: 0,
+        pt: getDefaultXYPt(),
         i:0,
         cc: nextMidiCC()
     })
@@ -742,7 +958,7 @@ function doWholeSpecificFunction(result) {
                     }
                 }
             }
-            if (pointLabelsToDo.includes(allPoints[i])) {
+            if (isPrimaryPoint(i)) {
 
                 if (state.boxEnabled.includes(i)) {
                     canvasCtx.beginPath();
@@ -1183,6 +1399,17 @@ function getStateFromURL() {
         var newState = JSON.parse(query.s)
         var stillNewState = updateStateToWorkWithCurrentStateObject(state,newState)
         state = newState
+        // Default model to pose if not set
+        if (!state.md) {
+            state.md = "p-mp"
+        }
+        // Update point arrays based on loaded model
+        updatePointArraysForModel()
+        // Update model selector if it exists
+        var modelSelector = document.getElementById("modelSelector")
+        if (modelSelector) {
+            modelSelector.value = state.md
+        }
         console.log(state)
     } catch (e) {
         console.log("error parsing state!")
@@ -1234,18 +1461,21 @@ updateDisplayWithState()
 // limitations under the License.
 import {
     PoseLandmarker,
+    HandLandmarker,
     FilesetResolver,
     DrawingUtils
 } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+
 let poseLandmarker = undefined;
+let handLandmarker = undefined;
+let currentLandmarker = undefined; // points to whichever model is active
 let runningMode = "IMAGE";
 let enableWebcamButton;
 let webcamRunning = false;
 const videoHeight = "360px";
 const videoWidth = "480px";
-// Before we can use PoseLandmarker class we must wait for it to finish
-// loading. Machine Learning models can be large and take a moment to
-// get everything needed to run.
+
+// Model loading functions
 const createPoseLandmarker = async () => {
     const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
     poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
@@ -1256,12 +1486,93 @@ const createPoseLandmarker = async () => {
         runningMode: runningMode,
         numPoses: 1
     });
-    enableWebcamButton.disabled = false;
-    enableWebcamButton.innerHTML = "turn on camera";
+    return poseLandmarker;
 };
-createPoseLandmarker();
 
+const createHandLandmarker = async () => {
+    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+    handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+            delegate: "GPU"
+        },
+        runningMode: runningMode,
+        numHands: 2
+    });
+    return handLandmarker;
+};
 
+// Load the appropriate model based on state
+const loadCurrentModel = async () => {
+    if (enableWebcamButton) {
+        enableWebcamButton.disabled = true;
+        enableWebcamButton.innerHTML = "loading...";
+    }
+
+    var model = getCurrentModel();
+    if (model === "h-mp") {
+        if (!handLandmarker) {
+            await createHandLandmarker();
+        }
+        currentLandmarker = handLandmarker;
+    } else {
+        if (!poseLandmarker) {
+            await createPoseLandmarker();
+        }
+        currentLandmarker = poseLandmarker;
+    }
+
+    if (enableWebcamButton) {
+        enableWebcamButton.disabled = false;
+        enableWebcamButton.innerHTML = "turn on camera";
+    }
+};
+
+// Switch model and reset recognizer state
+async function switchModel(newModel) {
+    if (state.md === newModel) return;
+
+    // Reset recognizer-related state (keep box mappings)
+    state.md = newModel;
+    state.angles = [];
+    state.dist = [];
+    state.xy = [];
+    state.activity = [];
+    state.boxEnabled = [];
+    state.sc = {}; // reset scaling
+
+    // Update point arrays
+    updatePointArraysForModel();
+
+    // Reset landmarks tracking
+    prevlandmarks = null;
+
+    // Reset running mode so new model can be configured properly
+    runningMode = "IMAGE";
+
+    // Clear and rebuild the body marker checkboxes BEFORE updating display
+    document.getElementById('bodyMarkerList').innerHTML = "";
+    initState(); // rebuild the body marker checkboxes
+
+    // Reload model
+    await loadCurrentModel();
+
+    // If webcam was running, set the new model to VIDEO mode
+    if (webcamRunning && currentLandmarker) {
+        runningMode = "VIDEO";
+        await currentLandmarker.setOptions({ runningMode: "VIDEO" });
+    }
+
+    // Update UI (after checkboxes exist)
+    stateHasBeenUpdated();
+}
+
+// Initialize model selector
+document.getElementById("modelSelector").value = getCurrentModel();
+document.getElementById("modelSelector").addEventListener("change", function() {
+    var newModel = document.getElementById("modelSelector").value;
+    switchModel(newModel);
+});
 
 const video = document.getElementById("webcam");
 const canvasElement = document.getElementById("output_canvas");
@@ -1282,16 +1593,19 @@ if (hasGetUserMedia()) {
 } else {
     console.warn("getUserMedia() is not supported by your browser");
 }
+
+// Load initial model (after enableWebcamButton is set)
+loadCurrentModel();
 // Enable the live webcam view and start detection.
 function enableCam(event) {
     console.log("hi?")
     doCameraFirst()
     console.log("hi? again")
-    if (!poseLandmarker) {
-        console.log("Wait! poseLandmaker not loaded yet.");
+    if (!currentLandmarker) {
+        console.log("Wait! landmarker not loaded yet.");
         return;
     }
-    
+
     enableWebcamButton.style.display = "none"
     document.getElementById("cameraSelect").style.display = "block"
 
@@ -1327,21 +1641,74 @@ async function predictWebcam() {
     // Now let's start detecting the stream.
     if (runningMode === "IMAGE") {
         runningMode = "VIDEO";
-        await poseLandmarker.setOptions({
+        await currentLandmarker.setOptions({
             runningMode: "VIDEO"
         });
     }
     let startTimeMs = performance.now();
     if (lastVideoTime !== video.currentTime) {
         lastVideoTime = video.currentTime;
-        poseLandmarker.detectForVideo(video, startTimeMs, (result) => {
-            doWholeSpecificFunction(result);
-        });
+
+        var model = getCurrentModel();
+        if (model === "h-mp") {
+            // Hand model
+            var result = currentLandmarker.detectForVideo(video, startTimeMs);
+            // Normalize hand results to match pose format
+            var normalizedResult = normalizeHandResult(result);
+            doWholeSpecificFunction(normalizedResult);
+        } else {
+            // Pose model
+            currentLandmarker.detectForVideo(video, startTimeMs, (result) => {
+                doWholeSpecificFunction(result);
+            });
+        }
     }
     // Call this function again to keep predicting when the browser is ready.
     if (webcamRunning === true) {
         window.requestAnimationFrame(predictWebcam);
     }
+}
+
+// Normalize hand landmarks to match the format expected by doWholeSpecificFunction
+// Hand model returns: { landmarks: [[21 points], [21 points]], handednesses: [...] }
+// We need: { landmarks: [[42 points]] } where first 21 are left hand, next 21 are right hand
+function normalizeHandResult(result) {
+    // Create empty landmarks for both hands (42 total points)
+    var combinedLandmarks = [];
+    for (var i = 0; i < 42; i++) {
+        combinedLandmarks.push({ x: 0, y: 0, z: 0, visibility: 0 });
+    }
+
+    var hasAnyHand = false;
+
+    if (result.landmarks && result.landmarks.length > 0 && result.handednesses) {
+        for (var h = 0; h < result.landmarks.length; h++) {
+            var handLandmarks = result.landmarks[h];
+            // Skip if no handedness data for this hand
+            if (!result.handednesses[h] || !result.handednesses[h][0]) {
+                continue;
+            }
+            var handedness = result.handednesses[h][0].categoryName; // "Left" or "Right"
+
+            // Note: MediaPipe returns "Left" for what appears as right hand in mirrored video
+            // Since video is mirrored, "Left" from MediaPipe = right side of screen = "R" in our naming
+            var offset = (handedness === "Left") ? 21 : 0; // "Left" from MP -> Right hand -> indices 21-41
+
+            for (var i = 0; i < handLandmarks.length; i++) {
+                combinedLandmarks[offset + i] = {
+                    x: handLandmarks[i].x,
+                    y: handLandmarks[i].y,
+                    z: handLandmarks[i].z,
+                    visibility: 1
+                };
+            }
+            hasAnyHand = true;
+        }
+    }
+
+    return {
+        landmarks: hasAnyHand ? [combinedLandmarks] : []
+    };
 }
 
 
