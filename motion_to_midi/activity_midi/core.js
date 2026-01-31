@@ -194,6 +194,32 @@ function getPrimaryLabel(index) {
     }
 }
 
+// Special direction points for angle measurement (indexes 100+)
+// These represent virtual points 50 pixels away from the center in a given direction
+var directionPoints = [
+    { index: 100, label: "↑ up", dx: 0, dy: -50 },
+    { index: 101, label: "↓ down", dx: 0, dy: 50 },
+    { index: 102, label: "→ right", dx: -50, dy: 0 },
+    { index: 103, label: "← left", dx: 50, dy: 0 }
+];
+
+function isDirectionIndex(index) {
+    return index >= 100 && index <= 103;
+}
+
+function getDirectionOffset(index) {
+    var dir = directionPoints.find(function(d) { return d.index === index; });
+    return dir ? { dx: dir.dx, dy: dir.dy } : null;
+}
+
+function getPointLabel(index) {
+    if (isDirectionIndex(index)) {
+        var dir = directionPoints.find(function(d) { return d.index === index; });
+        return dir ? dir.label : "unknown";
+    }
+    return allPoints[index] || "unknown";
+}
+
 // Helper functions to convert between hand index and L/R + joint index
 function handIndexToLRAndJoint(index) {
     if (index < 21) {
@@ -209,15 +235,35 @@ function lrAndJointToHandIndex(hand, joint) {
 
 // Create a point selector - returns either a single dropdown (pose) or dual dropdowns (hand)
 // Optional jointWidth parameter to customize joint dropdown width (default 90px)
-function createPointSelector(currentIndex, onChangeCallback, idPrefix, jointWidth) {
+// Optional includeDirections parameter to add direction options (up/down/left/right) at the top
+function createPointSelector(currentIndex, onChangeCallback, idPrefix, jointWidth, includeDirections) {
     var container = document.createElement('span');
     jointWidth = jointWidth || "90px";
 
     if (getCurrentModel() === "h-mp") {
-        // Hand mode: two dropdowns (L/R and joint)
+        // Hand mode: check if current value is a direction
+        var isDirection = isDirectionIndex(currentIndex);
+
+        // Hand mode: two dropdowns (L/R and joint) OR single dropdown for directions
         var lrSelect = document.createElement('select');
-        lrSelect.style.width = "32px";
+        lrSelect.style.width = "36px";
         lrSelect.id = idPrefix + "_lr";
+
+        // Add direction options at top if includeDirections is true
+        if (includeDirections) {
+            directionPoints.forEach(function(dir) {
+                var opt = document.createElement('option');
+                opt.value = dir.index;
+                opt.text = dir.label;
+                lrSelect.appendChild(opt);
+            });
+            // Add separator
+            var sepOpt = document.createElement('option');
+            sepOpt.disabled = true;
+            sepOpt.text = "──────";
+            lrSelect.appendChild(sepOpt);
+        }
+
         ["L", "R"].forEach(function(hand) {
             var opt = document.createElement('option');
             opt.value = hand;
@@ -236,14 +282,27 @@ function createPointSelector(currentIndex, onChangeCallback, idPrefix, jointWidt
         });
 
         // Set current values
-        var current = handIndexToLRAndJoint(currentIndex);
-        lrSelect.value = current.hand;
-        jointSelect.value = current.joint;
+        if (isDirection) {
+            lrSelect.value = currentIndex; // direction index
+            jointSelect.style.display = "none"; // hide joint selector for directions
+        } else {
+            var current = handIndexToLRAndJoint(currentIndex);
+            lrSelect.value = current.hand;
+            jointSelect.value = current.joint;
+        }
 
         // Change handlers
         var updateValue = function() {
-            var newIndex = lrAndJointToHandIndex(lrSelect.value, jointSelect.value);
-            onChangeCallback(newIndex);
+            var lrVal = lrSelect.value;
+            // Check if it's a direction value
+            if (isDirectionIndex(parseInt(lrVal))) {
+                jointSelect.style.display = "none";
+                onChangeCallback(parseInt(lrVal));
+            } else {
+                jointSelect.style.display = "";
+                var newIndex = lrAndJointToHandIndex(lrVal, jointSelect.value);
+                onChangeCallback(newIndex);
+            }
         };
         lrSelect.addEventListener("change", updateValue);
         jointSelect.addEventListener("change", updateValue);
@@ -255,6 +314,22 @@ function createPointSelector(currentIndex, onChangeCallback, idPrefix, jointWidt
         var select = document.createElement('select');
         select.style.width = "120px";
         select.id = idPrefix;
+
+        // Add direction options at top if includeDirections is true
+        if (includeDirections) {
+            directionPoints.forEach(function(dir) {
+                var opt = document.createElement('option');
+                opt.value = dir.index;
+                opt.text = dir.label;
+                select.appendChild(opt);
+            });
+            // Add separator
+            var sepOpt = document.createElement('option');
+            sepOpt.disabled = true;
+            sepOpt.text = "──────";
+            select.appendChild(sepOpt);
+        }
+
         allPoints.forEach(function(option, index) {
             var opt = document.createElement('option');
             opt.value = index;
@@ -374,6 +449,8 @@ function updateDisplayWithState() {
         }
         for (var pointIndex = 0; pointIndex < 3; pointIndex++) {
             (function(ai, pi) {
+                // Include direction options for the third point (index 2) only
+                var includeDirections = (pi === 2);
                 var selector = createPointSelector(
                     state.angles[ai].pts[pi],
                     function(newVal) {
@@ -381,7 +458,8 @@ function updateDisplayWithState() {
                         stateHasBeenUpdated();
                     },
                     "angleSelect" + ai + "_" + pi,
-                    isHandMode ? "120px" : null
+                    isHandMode ? "120px" : null,
+                    includeDirections
                 );
                 iDiv.appendChild(selector);
                 if (isHandMode) {
@@ -632,7 +710,7 @@ function initState() {
 function getDefaultAnglePts() {
     // Return sensible defaults based on current model
     if (getCurrentModel() === "h-mp") {
-        return [0, 5, 8]; // wrist, index 0 (palm), index 3 (tip) - left hand
+        return [4, 5, 8]; // thumb tip, index 0 (base), index 3 (tip) - left hand
     } else {
         return [15, 11, 23]; // wrist L, shoulder L, hip L
     }
@@ -989,11 +1067,19 @@ function doWholeSpecificFunction(result) {
                 landmark[anglePts[1]].y,
                 canvasElement.width,
                 canvasElement.height)
-            var px3 = normalizedToPixelCoordinates(
-                landmark[anglePts[2]].x,
-                landmark[anglePts[2]].y,
-                canvasElement.width,
-                canvasElement.height)
+
+            // Handle direction indexes for px3 (virtual points 50px from center)
+            var px3;
+            if (isDirectionIndex(anglePts[2])) {
+                var offset = getDirectionOffset(anglePts[2]);
+                px3 = [px2[0] + offset.dx, px2[1] + offset.dy];
+            } else {
+                px3 = normalizedToPixelCoordinates(
+                    landmark[anglePts[2]].x,
+                    landmark[anglePts[2]].y,
+                    canvasElement.width,
+                    canvasElement.height)
+            }
             var angleFormed = calculateAngle(px1, px2, px3)
 
             if(!isNaN(angleFormed)){
@@ -2044,7 +2130,7 @@ function renderInsidesOfMidiModal(){
     var divsToAdd = []
 
     for (var i = 0; i < state.angles.length; i++) {
-        var angleLabel = allPoints[state.angles[i].pts[0]]+", "+allPoints[state.angles[i].pts[1]]+", "+allPoints[state.angles[i].pts[2]]
+        var angleLabel = getPointLabel(state.angles[i].pts[0])+", "+getPointLabel(state.angles[i].pts[1])+", "+getPointLabel(state.angles[i].pts[2])
         var label = "angle: "+angleLabel
         divsToAdd.push(createMidiMapDiv(state.angles[i].cc, label))
     }
