@@ -11,19 +11,40 @@ var colorParams = {
     "dark": {
         "grid": "#000000", // black
         "primaryOutline": "#000000", // black
+        "primaryRGB": {r: 0, g: 0, b: 0}, // for interpolation
         "accentColor1": "rgba(0, 0, 200, 0.1)", // blue
         "accentColor1_darker": "rgba(0, 0, 200, 0.4)", // blue
+        "accentRGB": {r: 0, g: 0, b: 200}, // for interpolation
         "accentColor2": "rgba(0, 250, 0, 0.2)", // green
         "activityCircle": "#000000",
     },
     "light": {
-        "grid": "#FFFFFF", // black
-        "primaryOutline": "#FFFFFF", // black
+        "grid": "#FFFFFF", // white
+        "primaryOutline": "#FFFFFF", // white
+        "primaryRGB": {r: 255, g: 255, b: 255}, // for interpolation
         "accentColor1": "rgba(200, 0, 200, 0.1)", // purpleish
         "accentColor1_darker": "rgba(200, 0, 200, 0.4)", // purpleish
-        "accentColor2": "rgba(0, 250, 0, 0.2)", // blue
+        "accentRGB": {r: 200, g: 0, b: 200}, // for interpolation
+        "accentColor2": "rgba(0, 250, 0, 0.2)", // green
         "activityCircle": "#000000",
     },
+}
+
+// Interpolate between primary and accent color based on percentage (0-100)
+function getThresholdColor(percent) {
+    var primary = colorParams[colorID].primaryRGB;
+    var accent = colorParams[colorID].accentRGB;
+    var t = Math.max(0, Math.min(100, percent)) / 100;
+    var r = Math.round(primary.r + (accent.r - primary.r) * t);
+    var g = Math.round(primary.g + (accent.g - primary.g) * t);
+    var b = Math.round(primary.b + (accent.b - primary.b) * t);
+    return "rgb(" + r + ", " + g + ", " + b + ")";
+}
+
+// Check if a CC channel has user-defined thresholds
+function hasUserThreshold(ccChan) {
+    return state.sc && state.sc[""+ccChan] &&
+           (state.sc[""+ccChan].n > 0 || state.sc[""+ccChan].x < 126);
 }
 
 // Pose model landmarks (33 points)
@@ -998,7 +1019,8 @@ function doWholeSpecificFunction(result) {
 
             for (var j = state.activity.length - 1; j >= 0; j--) {
                 if (state.activity[j].pt == i) {
-                    sendMidiCC(state.activity[j].cc, totalActivity * 300, 127)
+                    var activityCC = state.activity[j].cc;
+                    sendMidiCC(activityCC, totalActivity * 300, 127)
                     canvasCtx.lineWidth = 0;
                     canvasCtx.strokeStyle = colorParams[colorID].primaryOutline;
                     canvasCtx.beginPath();
@@ -1009,30 +1031,70 @@ function doWholeSpecificFunction(result) {
                     canvasCtx.fillStyle = colorParams[colorID].accentColor1;
                     canvasCtx.stroke();
                     canvasCtx.fill();
+
+                    // Draw threshold visualization: arc around circle showing % complete
+                    if (hasUserThreshold(activityCC) && currentCCValues[activityCC]) {
+                        var outputPercent = currentCCValues[activityCC].outputPercent;
+                        var thresholdRadius = 50;
+                        var arcAngle = (outputPercent / 100) * 2 * Math.PI;
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(px1[0], px1[1], thresholdRadius, -Math.PI/2, -Math.PI/2 + arcAngle);
+                        canvasCtx.lineWidth = 4;
+                        canvasCtx.strokeStyle = getThresholdColor(outputPercent);
+                        canvasCtx.stroke();
+                    }
                 }
             }
 
             var widthOfCross = 50;
+            var thresholdOffset = 8;
             for (var j = state.xy.length - 1; j >= 0; j--) {
                 if (state.xy[j].pt == i) {
                     console.log(state.xy[j].i)
+                    var xyCC = state.xy[j].cc;
                     if(state.xy[j].i == 0){ // doing x
-                        sendMidiCC(state.xy[j].cc, canvasElement.width - px1[0], canvasElement.width)
+                        sendMidiCC(xyCC, canvasElement.width - px1[0], canvasElement.width)
                         canvasCtx.beginPath();
                         canvasCtx.lineWidth = 4;
                         canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
                         canvasCtx.moveTo(px1[0], px1[1] - widthOfCross)
                         canvasCtx.lineTo(px1[0], px1[1] + widthOfCross)
                         canvasCtx.stroke()
+
+                        // Draw threshold visualization: vertical line offset to the left, from bottom to top
+                        if (hasUserThreshold(xyCC) && currentCCValues[xyCC]) {
+                            var outputPercent = currentCCValues[xyCC].outputPercent;
+                            var fullLength = widthOfCross * 2;
+                            var lineLength = (outputPercent / 100) * fullLength;
+                            canvasCtx.beginPath();
+                            canvasCtx.lineWidth = 4;
+                            canvasCtx.strokeStyle = getThresholdColor(outputPercent);
+                            canvasCtx.moveTo(px1[0] - thresholdOffset, px1[1] + widthOfCross)
+                            canvasCtx.lineTo(px1[0] - thresholdOffset, px1[1] + widthOfCross - lineLength)
+                            canvasCtx.stroke()
+                        }
                     }
                     if(state.xy[j].i == 1){ // doing y
-                        sendMidiCC(state.xy[j].cc, canvasElement.height - px1[1], canvasElement.height)
+                        sendMidiCC(xyCC, canvasElement.height - px1[1], canvasElement.height)
                         canvasCtx.beginPath();
                         canvasCtx.lineWidth = 4;
                         canvasCtx.strokeStyle = colorParams[colorID].primaryOutline
                         canvasCtx.moveTo(px1[0] - widthOfCross, px1[1])
                         canvasCtx.lineTo(px1[0] + widthOfCross, px1[1])
                         canvasCtx.stroke()
+
+                        // Draw threshold visualization: horizontal line offset above, from right to left
+                        if (hasUserThreshold(xyCC) && currentCCValues[xyCC]) {
+                            var outputPercent = currentCCValues[xyCC].outputPercent;
+                            var fullLength = widthOfCross * 2;
+                            var lineLength = (outputPercent / 100) * fullLength;
+                            canvasCtx.beginPath();
+                            canvasCtx.lineWidth = 4;
+                            canvasCtx.strokeStyle = getThresholdColor(outputPercent);
+                            canvasCtx.moveTo(px1[0] + widthOfCross, px1[1] - thresholdOffset)
+                            canvasCtx.lineTo(px1[0] + widthOfCross - lineLength, px1[1] - thresholdOffset)
+                            canvasCtx.stroke()
+                        }
                     }
                 }
             }
@@ -1081,9 +1143,10 @@ function doWholeSpecificFunction(result) {
                     canvasElement.height)
             }
             var angleFormed = calculateAngle(px1, px2, px3)
+            var angleCC = state.angles[angleIndex].cc;
 
             if(!isNaN(angleFormed)){
-                sendMidiCC(state.angles[angleIndex].cc, angleFormed, 180)
+                sendMidiCC(angleCC, angleFormed, 180)
             }
             canvasCtx.beginPath();
             canvasCtx.lineWidth = 4;
@@ -1096,10 +1159,33 @@ function doWholeSpecificFunction(result) {
             const startAngle = Math.atan2(px1[1] - px2[1], px1[0] - px2[0]);
             const endAngle = Math.atan2(px3[1] - px2[1], px3[0] - px2[0]);
             canvasCtx.beginPath();
-            canvasCtx.arc(px2[0], px2[1], 50, startAngle, endAngle, !isClockwiseShorter(startAngle,endAngle)); // Adjust the radius as needed
+            canvasCtx.arc(px2[0], px2[1], 50, startAngle, endAngle, !isClockwiseShorter(startAngle,endAngle));
             canvasCtx.lineWidth = 3;
             canvasCtx.strokeStyle = colorParams[colorID].accentColor1_darker;
             canvasCtx.stroke();
+
+            // Draw threshold visualization: second arc showing thresholded %
+            if (hasUserThreshold(angleCC) && currentCCValues[angleCC]) {
+                var outputPercent = currentCCValues[angleCC].outputPercent;
+                var counterClockwise = !isClockwiseShorter(startAngle, endAngle);
+                // Calculate the partial arc based on thresholded output
+                var fullArcAngle;
+                if (counterClockwise) {
+                    fullArcAngle = startAngle - endAngle;
+                    if (fullArcAngle < 0) fullArcAngle += 2 * Math.PI;
+                } else {
+                    fullArcAngle = endAngle - startAngle;
+                    if (fullArcAngle < 0) fullArcAngle += 2 * Math.PI;
+                }
+                var partialAngle = (outputPercent / 100) * fullArcAngle;
+                var partialEndAngle = counterClockwise ? startAngle - partialAngle : startAngle + partialAngle;
+
+                canvasCtx.beginPath();
+                canvasCtx.arc(px2[0], px2[1], 60, startAngle, partialEndAngle, counterClockwise);
+                canvasCtx.lineWidth = 4;
+                canvasCtx.strokeStyle = getThresholdColor(outputPercent);
+                canvasCtx.stroke();
+            }
         }
 
          for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
@@ -1115,9 +1201,10 @@ function doWholeSpecificFunction(result) {
                 canvasElement.width,
                 canvasElement.height)
             var distanceBetween = calculateDistance(px1, px2)
+            var distCC = state.dist[distanceIndex].cc;
             if(!isNaN(distanceBetween)){
                 var diagonal = Math.sqrt(canvasElement.width * canvasElement.width + canvasElement.height * canvasElement.height)
-                sendMidiCC(state.dist[distanceIndex].cc, distanceBetween, diagonal)
+                sendMidiCC(distCC, distanceBetween, diagonal)
             }
             canvasCtx.beginPath();
             canvasCtx.lineWidth = 4;
@@ -1125,6 +1212,28 @@ function doWholeSpecificFunction(result) {
             canvasCtx.moveTo(px1[0], px1[1])
             canvasCtx.lineTo(px2[0], px2[1])
             canvasCtx.stroke()
+
+            // Draw threshold visualization: second line beneath showing thresholded %
+            if (hasUserThreshold(distCC) && currentCCValues[distCC]) {
+                var outputPercent = currentCCValues[distCC].outputPercent;
+                // Calculate the direction vector and perpendicular offset
+                var dx = px2[0] - px1[0];
+                var dy = px2[1] - px1[1];
+                var length = Math.sqrt(dx * dx + dy * dy);
+                // Normalize and get perpendicular (offset below the line)
+                var perpX = -dy / length * 8;
+                var perpY = dx / length * 8;
+                // Calculate end point based on thresholded percentage
+                var endX = px1[0] + dx * (outputPercent / 100);
+                var endY = px1[1] + dy * (outputPercent / 100);
+
+                canvasCtx.beginPath();
+                canvasCtx.lineWidth = 4;
+                canvasCtx.strokeStyle = getThresholdColor(outputPercent);
+                canvasCtx.moveTo(px1[0] + perpX, px1[1] + perpY)
+                canvasCtx.lineTo(endX + perpX, endY + perpY)
+                canvasCtx.stroke()
+            }
         }
 
         prevlandmarks.push(JSON.parse(JSON.stringify(landmark)));
