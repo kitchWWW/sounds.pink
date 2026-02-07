@@ -1659,7 +1659,7 @@ import {
     HandLandmarker,
     FilesetResolver,
     DrawingUtils
-} from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/+esm";
 
 let poseLandmarker = undefined;
 let handLandmarker = undefined;
