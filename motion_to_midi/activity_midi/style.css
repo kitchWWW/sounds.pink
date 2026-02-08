@@ -419,4 +419,21 @@ button{
   background: #ccc;
 }
 
-
+/* Narrow window: stack vertically when video would be < 250px */
+@media (max-width: 650px) {
+  .container {
+    flex-direction: column;
+  }
+  .col1 {
+    width: auto;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+  .col2 {
+    width: auto;
+    height: auto;
+    flex: 1 1 0;
+    min-height: 0;
+    margin-left: 10px;
+  }
+}

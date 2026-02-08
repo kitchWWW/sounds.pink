@@ -1745,8 +1745,19 @@ const loadCurrentModel = async () => {
 };
 
 // Switch model and reset recognizer state
+var switchModelGeneration = 0;
 async function switchModel(newModel) {
     if (state.md === newModel) return;
+
+    var myGeneration = ++switchModelGeneration;
+    var indicator = document.getElementById('modelLoadingIndicator');
+    var dotCount = 0;
+    indicator.textContent = 'loading.';
+    indicator.style.display = '';
+    var dotInterval = setInterval(function() {
+        dotCount = (dotCount + 1) % 3;
+        indicator.textContent = 'loading' + '.'.repeat(dotCount + 1);
+    }, 400);
 
     // Reset recognizer-related state (keep box mappings)
     state.md = newModel;
@@ -1772,6 +1783,13 @@ async function switchModel(newModel) {
 
     // Reload model
     await loadCurrentModel();
+
+    if (myGeneration !== switchModelGeneration) {
+        clearInterval(dotInterval);
+        return;
+    }
+    clearInterval(dotInterval);
+    indicator.style.display = 'none';
 
     // If webcam was running, set the new model to VIDEO mode
     if (webcamRunning && currentLandmarker) {
