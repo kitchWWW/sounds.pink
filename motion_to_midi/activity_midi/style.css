@@ -24,7 +24,7 @@ em {
 .slider {
   -webkit-appearance: none;
   height: 8px;
-  border-radius: 5px;  
+  border-radius: 5px;
   background: #222;
   outline: none;
   opacity: 0.7;
@@ -79,7 +79,7 @@ select{
   color:white;
   border: none;
   padding: 5px;
-  margin-top: 1px;
+  margin-top: 3px;
   margin-bottom: 1px;
   border-radius: 5px;
 }
