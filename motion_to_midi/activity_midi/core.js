@@ -254,6 +254,24 @@ function lrAndJointToHandIndex(hand, joint) {
     return hand === "R" ? parseInt(joint) + 21 : parseInt(joint);
 }
 
+// Check if a recognizer's point indices span both hands (L: 0-20, R: 21-41)
+function requiresBothHands(pts) {
+    if (getCurrentModel() !== "h-mp") return false;
+    var needsLeft = false, needsRight = false;
+    for (var i = 0; i < pts.length; i++) {
+        if (isDirectionIndex(pts[i])) continue;
+        if (pts[i] < 21) needsLeft = true;
+        else if (pts[i] < 42) needsRight = true;
+    }
+    return needsLeft && needsRight;
+}
+
+// Check if both hands have visible landmarks
+function bothHandsVisible(landmark) {
+    return landmark[0] && landmark[0].visibility > 0 &&
+           landmark[21] && landmark[21].visibility > 0;
+}
+
 // Create a point selector - returns either a single dropdown (pose) or dual dropdowns (hand)
 // Optional jointWidth parameter to customize joint dropdown width (default 90px)
 // Optional includeDirections parameter to add direction options (up/down/left/right) at the top
@@ -1119,6 +1137,7 @@ function doWholeSpecificFunction(result) {
         }
         for (var angleIndex = 0; angleIndex < state.angles.length; angleIndex++) {
             var anglePts = state.angles[angleIndex].pts
+            if (requiresBothHands(anglePts) && !bothHandsVisible(landmark)) continue;
             var px1 = normalizedToPixelCoordinates(
                 landmark[anglePts[0]].x,
                 landmark[anglePts[0]].y,
@@ -1190,6 +1209,7 @@ function doWholeSpecificFunction(result) {
 
          for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
             var distPts = state.dist[distanceIndex].pts
+            if (requiresBothHands(distPts) && !bothHandsVisible(landmark)) continue;
             var px1 = normalizedToPixelCoordinates(
                 landmark[distPts[0]].x,
                 landmark[distPts[0]].y,
@@ -1498,6 +1518,7 @@ function smoothLandmark(landmark) {
         ret[i].x = smoothWithMap("p" + i + "-x", capZeroOne(landmark[i].x))
         ret[i].y = smoothWithMap("p" + i + "-y", capZeroOne(landmark[i].y))
         ret[i].z = smoothWithMap("p" + i + "-z", capZeroOne(landmark[i].z))
+        ret[i].visibility = landmark[i].visibility
     }
     return ret
 }
