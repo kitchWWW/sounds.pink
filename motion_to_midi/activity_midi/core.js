@@ -1007,8 +1007,6 @@ function doWholeSpecificFunction(result) {
         var wayPrevLandmark = prevlandmarks.shift()
 
         for (var i = 0; i < allPoints.length; i++) {
-            if (!isLandmarkVisible(landmark, i)) continue;
-
             var px1 = normalizedToPixelCoordinates(
                 landmark[i].x,
                 landmark[i].y,
@@ -1121,10 +1119,6 @@ function doWholeSpecificFunction(result) {
         }
         for (var angleIndex = 0; angleIndex < state.angles.length; angleIndex++) {
             var anglePts = state.angles[angleIndex].pts
-            if (!isLandmarkVisible(landmark, anglePts[0]) ||
-                !isLandmarkVisible(landmark, anglePts[1]) ||
-                !isLandmarkVisible(landmark, anglePts[2])) continue;
-
             var px1 = normalizedToPixelCoordinates(
                 landmark[anglePts[0]].x,
                 landmark[anglePts[0]].y,
@@ -1196,9 +1190,6 @@ function doWholeSpecificFunction(result) {
 
          for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
             var distPts = state.dist[distanceIndex].pts
-            if (!isLandmarkVisible(landmark, distPts[0]) ||
-                !isLandmarkVisible(landmark, distPts[1])) continue;
-
             var px1 = normalizedToPixelCoordinates(
                 landmark[distPts[0]].x,
                 landmark[distPts[0]].y,
@@ -1913,12 +1904,6 @@ function normalizeHandResult(result) {
     return {
         landmarks: hasAnyHand ? [combinedLandmarks] : []
     };
-}
-
-function isLandmarkVisible(landmark, index) {
-    if (isDirectionIndex(index)) return true;
-    if (!landmark[index]) return false;
-    return landmark[index].visibility > 0;
 }
 
 
