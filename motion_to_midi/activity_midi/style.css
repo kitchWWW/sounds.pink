@@ -100,8 +100,8 @@ select{
   color:white;
   border: none;
   padding: 5px;
-  margin-top: 5px;
-  margin-bottom: 5px;
+  margin-top: 1px;
+  margin-bottom: 1px;
   border-radius: 5px;
 }
 

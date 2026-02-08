@@ -1299,7 +1299,6 @@ var nothingTwice = false // after this, clear things.
 var nothingThreetimes = false // to tell if we've already cleared things.
 
 function checkForNothing() {
-    console.log("checking for nothing")
     if (nothingOnce == false) {
         nothingOnce = true
         nothingTwice = false
@@ -1497,14 +1496,27 @@ function calculateAverage(arr) {
 var allSmoothing = {}
 
 function smoothWithMap(name, val) {
+    var now = performance.now();
     if (!(name in allSmoothing)) {
         allSmoothing[name] = []
     }
-    allSmoothing[name].push(val)
-    while (allSmoothing[name].length > state.smoothing) {
+    allSmoothing[name].push({t: now, v: val})
+    // Discard entries older than 0.5s (max window)
+    var maxCutoff = now - 500;
+    while (allSmoothing[name].length > 0 && allSmoothing[name][0].t < maxCutoff) {
         allSmoothing[name].shift()
     }
-    return calculateAverage(allSmoothing[name])
+    // Slider 1=0ms, 3≈111ms, 10=500ms
+    var windowMs = (state.smoothing - 1) * (500 / 9);
+    var windowCutoff = now - windowMs;
+    var values = [];
+    for (var i = 0; i < allSmoothing[name].length; i++) {
+        if (allSmoothing[name][i].t >= windowCutoff) {
+            values.push(allSmoothing[name][i].v);
+        }
+    }
+    if (values.length === 0) return val;
+    return calculateAverage(values);
 }
 
 function capZeroOne(numb) {
@@ -1515,9 +1527,15 @@ function smoothLandmark(landmark) {
     var ret = []
     for (var i = 0; i < landmark.length; i++) {
         ret.push({})
-        ret[i].x = smoothWithMap("p" + i + "-x", capZeroOne(landmark[i].x))
-        ret[i].y = smoothWithMap("p" + i + "-y", capZeroOne(landmark[i].y))
-        ret[i].z = smoothWithMap("p" + i + "-z", capZeroOne(landmark[i].z))
+        if (landmark[i].visibility === 0) {
+            ret[i].x = landmark[i].x
+            ret[i].y = landmark[i].y
+            ret[i].z = landmark[i].z
+        } else {
+            ret[i].x = smoothWithMap("p" + i + "-x", capZeroOne(landmark[i].x))
+            ret[i].y = smoothWithMap("p" + i + "-y", capZeroOne(landmark[i].y))
+            ret[i].z = smoothWithMap("p" + i + "-z", capZeroOne(landmark[i].z))
+        }
         ret[i].visibility = landmark[i].visibility
     }
     return ret
@@ -1854,10 +1872,39 @@ function enableCam(event) {
     });
 }
 let lastVideoTime = -1;
-
+var frameCount = 0;
+var fpsDisplayInterval = 2; // seconds between updates
+var fpsWebcamStart = 0;
+setInterval(function() {
+    var fpsEl = document.getElementById('fpsDisplay');
+    var loadingEl = document.getElementById('modelLoadingIndicator');
+    var isLoading = loadingEl && loadingEl.style.display !== 'none';
+    if (webcamRunning && !isLoading) {
+        if (fpsWebcamStart === 0) fpsWebcamStart = performance.now();
+        if (performance.now() - fpsWebcamStart < 1200) { frameCount = 0; return; }
+        var fps = frameCount / fpsDisplayInterval;
+        frameCount = 0;
+        fpsEl.style.display = '';
+        fpsEl.textContent = 'FPS:' + fps.toFixed(0);
+        if (fps >= 20) {
+            fpsEl.style.opacity = '0.4';
+            fpsEl.style.background = 'none';
+        } else if (fps >= 15) {
+            fpsEl.style.opacity = '1';
+            fpsEl.style.background = 'none';
+        } else {
+            fpsEl.style.opacity = '1';
+            fpsEl.style.background = 'rgba(180,50,50,0.5)';
+        }
+    } else {
+        fpsEl.style.display = 'none';
+        frameCount = 0;
+        fpsWebcamStart = 0;
+    }
+}, fpsDisplayInterval * 1000);
 
 async function predictWebcam() {
-    console.log("called predictWebcam")
+    frameCount++;
     var idealWidth = document.getElementById("col1").clientWidth
     var idealHeight = idealWidth * (video.videoHeight / video.videoWidth) // RESPECT the original video aspect ratio
 
@@ -1910,7 +1957,7 @@ function normalizeHandResult(result) {
     // Create empty landmarks for both hands (42 total points)
     var combinedLandmarks = [];
     for (var i = 0; i < 42; i++) {
-        combinedLandmarks.push({ x: 0, y: 0, z: 0, visibility: 0 });
+        combinedLandmarks.push({ x: -20000, y: -20000, z: 0, visibility: 0 });
     }
 
     var hasAnyHand = false;
