@@ -95,7 +95,7 @@ select{
   border-radius: 5px;
 }
 
-#modelSelector{
+#modelSelector, #faceDetectorType{
   background: #444;
   color:white;
   border: none;

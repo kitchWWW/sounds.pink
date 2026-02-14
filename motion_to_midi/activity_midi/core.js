@@ -47,6 +47,75 @@ function hasUserThreshold(ccChan) {
            (state.sc[""+ccChan].n > 0 || state.sc[""+ccChan].x < 126);
 }
 
+// Face model landmarks (68 points per face, up to MAX_FACES faces)
+var MAX_FACES = 6;
+var latestFaceResults = null;
+var faceApiLoaded = false;
+var faceDetectorType = "tiny";
+
+// 68-point face landmark labels (standard face-api.js ordering)
+var faceLandmarkLabels = [
+    "jaw 0", "jaw 1", "jaw 2", "jaw 3", "jaw 4", "jaw 5", "jaw 6", "jaw 7",
+    "chin", "jaw 9", "jaw 10", "jaw 11", "jaw 12", "jaw 13", "jaw 14", "jaw 15", "jaw 16",
+    "L eyebrow 0", "L eyebrow 1", "L eyebrow peak", "L eyebrow 3", "L eyebrow 4",
+    "R eyebrow 0", "R eyebrow 1", "R eyebrow peak", "R eyebrow 3", "R eyebrow 4",
+    "nose bridge top", "nose bridge 1", "nose bridge 2", "nose tip", "nose L 0", "nose L 1",
+    "nose bottom", "nose R 1", "nose R 0",
+    "L eye outer", "L eye 1", "L eye 2", "L eye inner", "L eye 4", "L eye 5",
+    "R eye inner", "R eye 1", "R eye 2", "R eye outer", "R eye 4", "R eye 5",
+    "L mouth corner", "lip top L 1", "lip top L 0", "lip top",
+    "lip top R 0", "lip top R 1", "R mouth corner",
+    "lip bottom R 0", "lip bottom R 1", "lip bottom",
+    "lip bottom L 1", "lip bottom L 0",
+    "inner lip top L", "inner lip top", "inner lip top R",
+    "inner lip bottom R", "inner lip bottom", "inner lip bottom L",
+    "nose L 2", "nose R 2"
+];
+
+// Build face all-points array: for each face F1..F6, prepend face label to each of 68 landmarks
+var faceAllPoints = [];
+for (var fi = 0; fi < MAX_FACES; fi++) {
+    for (var li = 0; li < 68; li++) {
+        faceAllPoints.push("F" + (fi + 1) + " " + faceLandmarkLabels[li]);
+    }
+}
+
+// Primary face points (the most useful landmarks)
+var facePrimaryLandmarkIndices = [30, 8, 36, 45, 48, 54, 51, 57, 19, 24, 27, 0, 16];
+var facePrimaryPointsData = [];
+for (var fi = 0; fi < MAX_FACES; fi++) {
+    for (var pi = 0; pi < facePrimaryLandmarkIndices.length; pi++) {
+        var idx = fi * 68 + facePrimaryLandmarkIndices[pi];
+        facePrimaryPointsData.push({ index: idx, label: faceAllPoints[idx] });
+    }
+}
+var facePrimaryPoints = facePrimaryPointsData.map(function(p) { return p.label; });
+
+// Helper: convert flat index to face number and landmark index
+function faceIndexToFaceAndLandmark(index) {
+    return { face: Math.floor(index / 68), landmark: index % 68 };
+}
+function faceAndLandmarkToIndex(face, landmark) {
+    return face * 68 + parseInt(landmark);
+}
+
+// Check if point indices span multiple faces
+function requiresMultipleFaces(pts) {
+    if (getCurrentModel() !== "f-fa") return false;
+    var faces = {};
+    for (var i = 0; i < pts.length; i++) {
+        if (isDirectionIndex(pts[i])) continue;
+        faces[Math.floor(pts[i] / 68)] = true;
+    }
+    return Object.keys(faces).length > 1;
+}
+
+// Check if a specific face has visible landmarks
+function faceVisible(landmark, faceIndex) {
+    var offset = faceIndex * 68;
+    return landmark[offset] && landmark[offset].visibility > 0;
+}
+
 // Pose model landmarks (33 points)
 var poseAllPoints = [
     "nose",
@@ -198,7 +267,9 @@ var handPrimaryPoints = handPrimaryPointsData.map(function(p) { return p.label; 
 
 // Helper: check if an index is a primary point
 function isPrimaryPoint(index) {
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        return facePrimaryPointsData.some(function(p) { return p.index === index; });
+    } else if (getCurrentModel() === "h-mp") {
         return handPrimaryPointsData.some(function(p) { return p.index === index; });
     } else {
         return posePrimaryPoints.includes(poseAllPoints[index]);
@@ -207,7 +278,10 @@ function isPrimaryPoint(index) {
 
 // Helper: get display label for a primary point index
 function getPrimaryLabel(index) {
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        var found = facePrimaryPointsData.find(function(p) { return p.index === index; });
+        return found ? found.label : allPoints[index];
+    } else if (getCurrentModel() === "h-mp") {
         var found = handPrimaryPointsData.find(function(p) { return p.index === index; });
         return found ? found.label : allPoints[index];
     } else {
@@ -279,7 +353,70 @@ function createPointSelector(currentIndex, onChangeCallback, idPrefix, jointWidt
     var container = document.createElement('span');
     jointWidth = jointWidth || "90px";
 
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        // Face mode: two dropdowns (Face # and landmark)
+        var isDirection = isDirectionIndex(currentIndex);
+
+        var faceSelect = document.createElement('select');
+        faceSelect.style.width = "42px";
+        faceSelect.id = idPrefix + "_face";
+
+        if (includeDirections) {
+            directionPoints.forEach(function(dir) {
+                var opt = document.createElement('option');
+                opt.value = dir.index;
+                opt.text = dir.label;
+                faceSelect.appendChild(opt);
+            });
+            var sepOpt = document.createElement('option');
+            sepOpt.disabled = true;
+            sepOpt.text = "──────";
+            faceSelect.appendChild(sepOpt);
+        }
+
+        for (var f = 0; f < MAX_FACES; f++) {
+            var opt = document.createElement('option');
+            opt.value = f;
+            opt.text = "F" + (f + 1);
+            faceSelect.appendChild(opt);
+        }
+
+        var landmarkSelect = document.createElement('select');
+        landmarkSelect.style.width = jointWidth;
+        landmarkSelect.id = idPrefix + "_landmark";
+        faceLandmarkLabels.forEach(function(label, index) {
+            var opt = document.createElement('option');
+            opt.value = index;
+            opt.text = label;
+            landmarkSelect.appendChild(opt);
+        });
+
+        if (isDirection) {
+            faceSelect.value = currentIndex;
+            landmarkSelect.style.display = "none";
+        } else {
+            var current = faceIndexToFaceAndLandmark(currentIndex);
+            faceSelect.value = current.face;
+            landmarkSelect.value = current.landmark;
+        }
+
+        var updateValue = function() {
+            var faceVal = faceSelect.value;
+            if (isDirectionIndex(parseInt(faceVal))) {
+                landmarkSelect.style.display = "none";
+                onChangeCallback(parseInt(faceVal));
+            } else {
+                landmarkSelect.style.display = "";
+                var newIndex = faceAndLandmarkToIndex(parseInt(faceVal), landmarkSelect.value);
+                onChangeCallback(newIndex);
+            }
+        };
+        faceSelect.addEventListener("change", updateValue);
+        landmarkSelect.addEventListener("change", updateValue);
+
+        container.appendChild(faceSelect);
+        container.appendChild(landmarkSelect);
+    } else if (getCurrentModel() === "h-mp") {
         // Hand mode: check if current value is a direction
         var isDirection = isDirectionIndex(currentIndex);
 
@@ -395,7 +532,10 @@ function getCurrentModel() {
 
 function updatePointArraysForModel() {
     var model = getCurrentModel()
-    if (model === "h-mp") {
+    if (model === "f-fa") {
+        allPoints = faceAllPoints
+        pointLabelsToDo = facePrimaryPoints
+    } else if (model === "h-mp") {
         allPoints = handAllPoints
         pointLabelsToDo = handPrimaryPoints
     } else {
@@ -422,7 +562,8 @@ function nextMidiCC() {
     const maxActivityCC = state.activity.reduce((max, item) => Math.max(max, item.cc), -Infinity);
     const maxDistanceCC = state.dist.reduce((max, item) => Math.max(max, item.cc), -Infinity);
     const maxXYCC = state.xy.reduce((max, item) => Math.max(max, item.cc), -Infinity);
-    var maxSoFar = Math.max(maxActivityCC, maxXYCC, maxDistanceCC, maxAngleCC, 15)
+    const maxEmotionsCC = (state.emotions && state.emotions.length) ? state.emotions.reduce((max, item) => Math.max(max, item.cc), -Infinity) : -Infinity;
+    var maxSoFar = Math.max(maxActivityCC, maxXYCC, maxDistanceCC, maxAngleCC, maxEmotionsCC, 15)
     return maxSoFar + 1
 }
 
@@ -453,11 +594,71 @@ function updateDisplayWithState() {
     document.getElementById("widthTextBox").value = state.width
     document.getElementById("heightTextBox").value = state.height
     drawActiveBoxes()
-     for (var i = 0; i < allPoints.length; i++) {
-        if (isPrimaryPoint(i)) {
-            var checkbox = document.getElementById("checkbox" + i)
-            if (checkbox) {
-                checkbox.checked = state.boxEnabled.includes(i)
+
+    if (getCurrentModel() === "f-fa") {
+        // Face mode: rebuild dynamic marker list
+        var faceMarkerList = document.getElementById("faceMarkerList");
+        if (faceMarkerList) {
+            faceMarkerList.innerHTML = "";
+            for (var mi = 0; mi < state.boxEnabled.length; mi++) {
+                (function(markerIdx) {
+                    var iDiv = document.createElement('div');
+                    iDiv.style.marginBottom = "4px";
+                    var current = faceIndexToFaceAndLandmark(state.boxEnabled[markerIdx]);
+
+                    // Face # dropdown
+                    var faceSelect = document.createElement('select');
+                    faceSelect.style.width = "42px";
+                    for (var f = 0; f < MAX_FACES; f++) {
+                        var opt = document.createElement('option');
+                        opt.value = f;
+                        opt.text = "F" + (f + 1);
+                        faceSelect.appendChild(opt);
+                    }
+                    faceSelect.value = current.face;
+
+                    // Landmark dropdown
+                    var landmarkSelect = document.createElement('select');
+                    landmarkSelect.style.width = "120px";
+                    facePrimaryLandmarkIndices.forEach(function(li) {
+                        var opt = document.createElement('option');
+                        opt.value = li;
+                        opt.text = faceLandmarkLabels[li];
+                        landmarkSelect.appendChild(opt);
+                    });
+                    landmarkSelect.value = current.landmark;
+
+                    var updateMarker = function() {
+                        state.boxEnabled[markerIdx] = faceAndLandmarkToIndex(parseInt(faceSelect.value), landmarkSelect.value);
+                        stateHasBeenUpdated();
+                    };
+                    faceSelect.addEventListener("change", updateMarker);
+                    landmarkSelect.addEventListener("change", updateMarker);
+
+                    // Delete button
+                    var myDelete = document.createElement('span');
+                    myDelete.classList.add("deleteButton");
+                    myDelete.innerHTML = "delete";
+                    myDelete.style.display = "inline-block";
+                    myDelete.addEventListener('click', function() {
+                        state.boxEnabled.splice(markerIdx, 1);
+                        stateHasBeenUpdated();
+                    });
+
+                    iDiv.appendChild(faceSelect);
+                    iDiv.appendChild(landmarkSelect);
+                    iDiv.appendChild(myDelete);
+                    faceMarkerList.appendChild(iDiv);
+                })(mi);
+            }
+        }
+    } else {
+        for (var i = 0; i < allPoints.length; i++) {
+            if (isPrimaryPoint(i)) {
+                var checkbox = document.getElementById("checkbox" + i)
+                if (checkbox) {
+                    checkbox.checked = state.boxEnabled.includes(i)
+                }
             }
         }
     }
@@ -478,10 +679,10 @@ function updateDisplayWithState() {
 
     // and now we move on to doing the angle state update. Because this one is complex as shit, we actually have to create and destory most of the UI every single time.
     document.getElementById('angleUIList').innerHTML = ""
-    var isHandMode = getCurrentModel() === "h-mp";
+    var isDualDropdownMode = getCurrentModel() === "h-mp" || getCurrentModel() === "f-fa";
     for (var angleIndex = 0; angleIndex < state.angles.length; angleIndex++) {
         var iDiv = document.createElement('div');
-        if (isHandMode) {
+        if (isDualDropdownMode) {
             iDiv.style.marginBottom = "10px";
             iDiv.style.paddingBottom = "10px";
             iDiv.style.borderBottom = "1px solid #444";
@@ -497,11 +698,11 @@ function updateDisplayWithState() {
                         stateHasBeenUpdated();
                     },
                     "angleSelect" + ai + "_" + pi,
-                    isHandMode ? "120px" : null,
+                    isDualDropdownMode ? "120px" : null,
                     includeDirections
                 );
                 iDiv.appendChild(selector);
-                if (isHandMode) {
+                if (isDualDropdownMode) {
                     iDiv.appendChild(document.createElement('br'));
                 }
             })(angleIndex, pointIndex);
@@ -708,9 +909,135 @@ function updateDisplayWithState() {
         iDiv.appendChild(myDelete)
         document.getElementById('xyUIList').appendChild(iDiv);
     }
+
+    // Emotions UI (face model only)
+    var isFaceMode = getCurrentModel() === "f-fa";
+    document.getElementById("emotionsRow").style.display = isFaceMode ? "" : "none";
+    document.getElementById("faceDetectorType").style.display = isFaceMode ? "" : "none";
+    if (isFaceMode) {
+        document.getElementById("faceDetectorType").value = state.fd || "tiny";
+    }
+    document.getElementById('emotionsUIList').innerHTML = "";
+    var emotionsList = state.emotions || [];
+    var emotionAttrs = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised", "age", "gender"];
+    for (var emotionIndex = 0; emotionIndex < emotionsList.length; emotionIndex++) {
+        var iDiv = document.createElement('div');
+        iDiv.style.marginBottom = "6px";
+
+        // Face # dropdown
+        var faceSelect = document.createElement('select');
+        faceSelect.style.width = "42px";
+        faceSelect.emotionIndex = emotionIndex;
+        for (var f = 0; f < MAX_FACES; f++) {
+            var opt = document.createElement('option');
+            opt.value = f;
+            opt.text = "F" + (f + 1);
+            faceSelect.appendChild(opt);
+        }
+        faceSelect.value = emotionsList[emotionIndex].face;
+        faceSelect.addEventListener("change", (function(ei) {
+            return function(event) {
+                state.emotions[ei].face = parseInt(event.target.value);
+                stateHasBeenUpdated();
+            };
+        })(emotionIndex));
+        iDiv.appendChild(faceSelect);
+
+        // Attribute dropdown
+        var attrSelect = document.createElement('select');
+        attrSelect.style.width = "90px";
+        attrSelect.emotionIndex = emotionIndex;
+        emotionAttrs.forEach(function(attr) {
+            var opt = document.createElement('option');
+            opt.value = attr;
+            opt.text = attr;
+            attrSelect.appendChild(opt);
+        });
+        attrSelect.value = emotionsList[emotionIndex].attr;
+        attrSelect.addEventListener("change", (function(ei) {
+            return function(event) {
+                state.emotions[ei].attr = event.target.value;
+                stateHasBeenUpdated();
+            };
+        })(emotionIndex));
+        iDiv.appendChild(attrSelect);
+
+        // CC input
+        var inputField = document.createElement("INPUT");
+        inputField.setAttribute("type", "text");
+        inputField.emotionIndex = emotionIndex;
+        inputField.id = "midiCCemotion" + emotionIndex;
+        inputField.addEventListener('change', (function(ei) {
+            return function(event) {
+                var newVal = parseInt(event.target.value);
+                if (newVal > 128 || newVal < 0) newVal = nextMidiCC();
+                state.emotions[ei].cc = newVal;
+                stateHasBeenUpdated();
+            };
+        })(emotionIndex));
+        inputField.value = emotionsList[emotionIndex].cc;
+        iDiv.appendChild(inputField);
+
+        // Delete button
+        var myDelete = document.createElement('span');
+        myDelete.classList.add("deleteButton");
+        myDelete.innerHTML = "delete";
+        myDelete.style.display = "inline-block";
+        myDelete.emotionIndex = emotionIndex;
+        myDelete.addEventListener('click', (function(ei) {
+            return function() {
+                state.emotions.splice(ei, 1);
+                stateHasBeenUpdated();
+            };
+        })(emotionIndex));
+        iDiv.appendChild(myDelete);
+
+        document.getElementById('emotionsUIList').appendChild(iDiv);
+    }
 }
 
 function initState() {
+    if (getCurrentModel() === "f-fa") {
+        // Face mode: dynamic marker list with "+ new marker" button
+        var addBtn = document.createElement('button');
+        addBtn.className = "addnewbutton";
+        addBtn.innerHTML = "+ new marker";
+        addBtn.addEventListener('click', function() {
+            // Default to F1 nose tip (index 30)
+            var defaultIndex = 30;
+            if (!state.boxEnabled.includes(defaultIndex)) {
+                state.boxEnabled.push(defaultIndex);
+            } else {
+                // find first unused primary landmark on F1
+                var added = false;
+                for (var pi = 0; pi < facePrimaryLandmarkIndices.length; pi++) {
+                    var idx = facePrimaryLandmarkIndices[pi];
+                    if (!state.boxEnabled.includes(idx)) {
+                        state.boxEnabled.push(idx);
+                        added = true;
+                        break;
+                    }
+                }
+                if (!added) {
+                    // just add nose tip of next face
+                    for (var f = 1; f < MAX_FACES; f++) {
+                        var idx = f * 68 + 30;
+                        if (!state.boxEnabled.includes(idx)) {
+                            state.boxEnabled.push(idx);
+                            break;
+                        }
+                    }
+                }
+            }
+            stateHasBeenUpdated();
+        });
+        var listDiv = document.createElement('div');
+        listDiv.id = "faceMarkerList";
+        document.getElementById('bodyMarkerList').appendChild(listDiv);
+        document.getElementById('bodyMarkerList').appendChild(addBtn);
+        return;
+    }
+
     for (var i = 0; i < allPoints.length; i++) {
         if (!isPrimaryPoint(i)) continue;
         var iDiv = document.createElement('div');
@@ -748,7 +1075,9 @@ function initState() {
 
 function getDefaultAnglePts() {
     // Return sensible defaults based on current model
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        return [36, 30, 45]; // left eye outer, nose tip, right eye outer
+    } else if (getCurrentModel() === "h-mp") {
         return [4, 5, 8]; // thumb tip, index 0 (base), index 3 (tip) - left hand
     } else {
         return [15, 11, 23]; // wrist L, shoulder L, hip L
@@ -756,7 +1085,9 @@ function getDefaultAnglePts() {
 }
 
 function getDefaultDistancePts() {
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        return [36, 45]; // left eye outer, right eye outer
+    } else if (getCurrentModel() === "h-mp") {
         return [4, 8]; // thumb 3 (tip), index 3 (tip) - left hand
     } else {
         return [15, 16]; // wrist L, wrist R
@@ -764,7 +1095,9 @@ function getDefaultDistancePts() {
 }
 
 function getDefaultActivityPt() {
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        return 30; // nose tip
+    } else if (getCurrentModel() === "h-mp") {
         return 8; // index 3 (tip) - left hand
     } else {
         return 15; // wrist L
@@ -772,7 +1105,9 @@ function getDefaultActivityPt() {
 }
 
 function getDefaultXYPt() {
-    if (getCurrentModel() === "h-mp") {
+    if (getCurrentModel() === "f-fa") {
+        return 30; // nose tip
+    } else if (getCurrentModel() === "h-mp") {
         return 0; // wrist - left hand
     } else {
         return 0; // nose
@@ -816,6 +1151,17 @@ function addNewXY() {
     stateHasBeenUpdated()
 }
 document.getElementById("addNewXYButton").onclick = addNewXY
+
+function addNewEmotion() {
+    if (!state.emotions) state.emotions = [];
+    state.emotions.push({
+        face: 0,
+        attr: "happy",
+        cc: nextMidiCC()
+    });
+    stateHasBeenUpdated();
+}
+document.getElementById("addNewEmotionsButton").onclick = addNewEmotion;
 
 
 function drawActiveBoxes() {
@@ -1116,7 +1462,8 @@ function doWholeSpecificFunction(result) {
                     }
                 }
             }
-            if (isPrimaryPoint(i)) {
+            var showMarker = (getCurrentModel() === "f-fa") ? state.boxEnabled.includes(i) : isPrimaryPoint(i);
+            if (showMarker) {
 
                 if (state.boxEnabled.includes(i)) {
                     canvasCtx.beginPath();
@@ -1135,9 +1482,54 @@ function doWholeSpecificFunction(result) {
             }
 
         }
+
+        // Draw face bounding boxes and labels (face model only)
+        if (getCurrentModel() === "f-fa") {
+            for (var f = 0; f < MAX_FACES; f++) {
+                var fOffset = f * 68;
+                if (!landmark[fOffset] || landmark[fOffset].visibility === 0) continue;
+                // Compute bounding box from face landmarks
+                var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                for (var li = 0; li < 68; li++) {
+                    var pt = landmark[fOffset + li];
+                    if (pt.visibility === 0) continue;
+                    var px = pt.x * canvasElement.width;
+                    var py = pt.y * canvasElement.height;
+                    if (px < minX) minX = px;
+                    if (py < minY) minY = py;
+                    if (px > maxX) maxX = px;
+                    if (py > maxY) maxY = py;
+                }
+                if (minX !== Infinity) {
+                    var pad = 10;
+                    canvasCtx.strokeStyle = colorParams[colorID].primaryOutline;
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.strokeRect(minX - pad, minY - pad, (maxX - minX) + pad * 2, (maxY - minY) + pad * 2);
+                    canvasCtx.fillStyle = colorParams[colorID].primaryOutline;
+                    canvasCtx.font = "24px Roboto";
+                    var labelX = minX - pad;
+                    var labelY = minY - pad - 4;
+                    canvasCtx.save();
+                    canvasCtx.translate(labelX, labelY);
+                    canvasCtx.scale(-1, 1);
+                    canvasCtx.fillText("F" + (f + 1), 0, 0);
+                    canvasCtx.restore();
+                }
+            }
+        }
+
         for (var angleIndex = 0; angleIndex < state.angles.length; angleIndex++) {
             var anglePts = state.angles[angleIndex].pts
             if (requiresBothHands(anglePts) && !bothHandsVisible(landmark)) continue;
+            if (requiresMultipleFaces(anglePts)) {
+                var skip = false;
+                var facesNeeded = {};
+                for (var pi = 0; pi < anglePts.length; pi++) {
+                    if (!isDirectionIndex(anglePts[pi])) facesNeeded[Math.floor(anglePts[pi] / 68)] = true;
+                }
+                for (var fn in facesNeeded) { if (!faceVisible(landmark, parseInt(fn))) skip = true; }
+                if (skip) continue;
+            }
             var px1 = normalizedToPixelCoordinates(
                 landmark[anglePts[0]].x,
                 landmark[anglePts[0]].y,
@@ -1210,6 +1602,15 @@ function doWholeSpecificFunction(result) {
          for (var distanceIndex = 0; distanceIndex < state.dist.length; distanceIndex++) {
             var distPts = state.dist[distanceIndex].pts
             if (requiresBothHands(distPts) && !bothHandsVisible(landmark)) continue;
+            if (requiresMultipleFaces(distPts)) {
+                var skip = false;
+                var facesNeeded = {};
+                for (var pi = 0; pi < distPts.length; pi++) {
+                    if (!isDirectionIndex(distPts[pi])) facesNeeded[Math.floor(distPts[pi] / 68)] = true;
+                }
+                for (var fn in facesNeeded) { if (!faceVisible(landmark, parseInt(fn))) skip = true; }
+                if (skip) continue;
+            }
             var px1 = normalizedToPixelCoordinates(
                 landmark[distPts[0]].x,
                 landmark[distPts[0]].y,
@@ -1253,6 +1654,25 @@ function doWholeSpecificFunction(result) {
                 canvasCtx.moveTo(px1[0] + perpX, px1[1] + perpY)
                 canvasCtx.lineTo(endX + perpX, endY + perpY)
                 canvasCtx.stroke()
+            }
+        }
+
+        // Process emotions (face model only)
+        if (getCurrentModel() === "f-fa" && latestFaceResults) {
+            var emotions = state.emotions || [];
+            for (var ei = 0; ei < emotions.length; ei++) {
+                var emo = emotions[ei];
+                var faceResult = latestFaceResults[emo.face];
+                if (!faceResult) continue;
+                var val = 0;
+                if (emo.attr === "age") {
+                    val = faceResult.age / 100; // normalize 0-100 to 0-1
+                } else if (emo.attr === "gender") {
+                    val = faceResult.genderProbability; // already 0-1
+                } else {
+                    val = (faceResult.expressions && faceResult.expressions[emo.attr]) || 0; // already 0-1
+                }
+                sendMidiCC(emo.cc, val, 1);
             }
         }
 
@@ -1624,6 +2044,15 @@ function updateStateToWorkWithCurrentStateObject(validState, newState){
         }
         delete newState['xySending']
     }
+    // Only add emotions array if face model is selected
+    if (newState.md === "f-fa" && !('emotions' in newState)) {
+        newState.emotions = [];
+    }
+    // Clean up face-specific fields if not using face model
+    if (newState.md !== "f-fa") {
+        delete newState.emotions;
+        delete newState.fd;
+    }
     return newState
 }
 
@@ -1643,6 +2072,13 @@ function getStateFromURL() {
         var modelSelector = document.getElementById("modelSelector")
         if (modelSelector) {
             modelSelector.value = state.md
+        }
+        // Update face-specific UI if face model
+        if (state.md === "f-fa") {
+            faceDetectorType = state.fd || "tiny";
+            document.getElementById("faceDetectorType").style.display = "";
+            document.getElementById("faceDetectorType").value = faceDetectorType;
+            document.getElementById("emotionsRow").style.display = "";
         }
         console.log(state)
     } catch (e) {
@@ -1699,6 +2135,7 @@ import {
     FilesetResolver,
     DrawingUtils
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/+esm";
+import * as faceapi from "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.esm.js";
 
 let poseLandmarker = undefined;
 let handLandmarker = undefined;
@@ -1736,6 +2173,19 @@ const createHandLandmarker = async () => {
     return handLandmarker;
 };
 
+const loadFaceApiModels = async (detectorType) => {
+    const modelPath = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+    if (detectorType === "ssd") {
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath);
+    } else {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
+    }
+    await faceapi.nets.faceLandmark68Net.loadFromUri(modelPath);
+    await faceapi.nets.faceExpressionNet.loadFromUri(modelPath);
+    await faceapi.nets.ageGenderNet.loadFromUri(modelPath);
+    faceApiLoaded = true;
+};
+
 // Load the appropriate model based on state
 const loadCurrentModel = async () => {
     if (enableWebcamButton) {
@@ -1744,7 +2194,11 @@ const loadCurrentModel = async () => {
     }
 
     var model = getCurrentModel();
-    if (model === "h-mp") {
+    if (model === "f-fa") {
+        faceDetectorType = (state.fd || "tiny");
+        await loadFaceApiModels(faceDetectorType);
+        currentLandmarker = null; // face-api doesn't use MediaPipe landmarker
+    } else if (model === "h-mp") {
         if (!handLandmarker) {
             await createHandLandmarker();
         }
@@ -1777,6 +2231,12 @@ async function switchModel(newModel) {
         indicator.textContent = 'loading' + '.'.repeat(dotCount + 1);
     }, 400);
 
+    // Clean up face-specific fields from old model
+    if (state.md === "f-fa") {
+        delete state.emotions;
+        delete state.fd;
+    }
+
     // Reset recognizer-related state (keep box mappings)
     state.md = newModel;
     state.angles = [];
@@ -1785,6 +2245,20 @@ async function switchModel(newModel) {
     state.activity = [];
     state.boxEnabled = [];
     state.sc = {}; // reset scaling
+
+    // Add face-specific fields if switching to face
+    if (newModel === "f-fa") {
+        state.emotions = [];
+        state.fd = state.fd || "tiny";
+        faceDetectorType = state.fd;
+    }
+
+    // Show/hide face-specific UI
+    document.getElementById("faceDetectorType").style.display = (newModel === "f-fa") ? "" : "none";
+    document.getElementById("emotionsRow").style.display = (newModel === "f-fa") ? "" : "none";
+    if (newModel === "f-fa") {
+        document.getElementById("faceDetectorType").value = state.fd || "tiny";
+    }
 
     // Update point arrays
     updatePointArraysForModel();
@@ -1809,8 +2283,8 @@ async function switchModel(newModel) {
     clearInterval(dotInterval);
     indicator.style.display = 'none';
 
-    // If webcam was running, set the new model to VIDEO mode
-    if (webcamRunning && currentLandmarker) {
+    // If webcam was running, set the new model to VIDEO mode (skip for face-api)
+    if (webcamRunning && currentLandmarker && newModel !== "f-fa") {
         runningMode = "VIDEO";
         await currentLandmarker.setOptions({ runningMode: "VIDEO" });
     }
@@ -1824,6 +2298,27 @@ document.getElementById("modelSelector").value = getCurrentModel();
 document.getElementById("modelSelector").addEventListener("change", function() {
     var newModel = document.getElementById("modelSelector").value;
     switchModel(newModel);
+});
+
+// Face detector type change handler
+document.getElementById("faceDetectorType").addEventListener("change", async function() {
+    var newType = document.getElementById("faceDetectorType").value;
+    faceDetectorType = newType;
+    state.fd = newType;
+    stateHasBeenUpdated();
+    // Reload face models with new detector
+    var indicator = document.getElementById('modelLoadingIndicator');
+    var dotCount = 0;
+    indicator.textContent = 'loading.';
+    indicator.style.display = '';
+    var dotInterval = setInterval(function() {
+        dotCount = (dotCount + 1) % 3;
+        indicator.textContent = 'loading' + '.'.repeat(dotCount + 1);
+    }, 400);
+    faceApiLoaded = false;
+    await loadFaceApiModels(newType);
+    clearInterval(dotInterval);
+    indicator.style.display = 'none';
 });
 
 const video = document.getElementById("webcam");
@@ -1853,8 +2348,12 @@ function enableCam(event) {
     console.log("hi?")
     doCameraFirst()
     console.log("hi? again")
-    if (!currentLandmarker) {
+    if (!currentLandmarker && getCurrentModel() !== "f-fa") {
         console.log("Wait! landmarker not loaded yet.");
+        return;
+    }
+    if (getCurrentModel() === "f-fa" && !faceApiLoaded) {
+        console.log("Wait! face-api not loaded yet.");
         return;
     }
 
@@ -1920,18 +2419,35 @@ async function predictWebcam() {
     document.getElementById("wholeThingMaybe").style.display = "block";
 
     // Now let's start detecting the stream.
-    if (runningMode === "IMAGE") {
-        runningMode = "VIDEO";
-        await currentLandmarker.setOptions({
-            runningMode: "VIDEO"
-        });
+    var model = getCurrentModel();
+    if (model !== "f-fa") {
+        if (runningMode === "IMAGE") {
+            runningMode = "VIDEO";
+            await currentLandmarker.setOptions({
+                runningMode: "VIDEO"
+            });
+        }
     }
     let startTimeMs = performance.now();
     if (lastVideoTime !== video.currentTime) {
         lastVideoTime = video.currentTime;
 
-        var model = getCurrentModel();
-        if (model === "h-mp") {
+        if (model === "f-fa") {
+            // Face model (face-api.js) — skip if models are reloading
+            if (!faceApiLoaded) {
+                // models still loading, skip this frame
+            } else {
+                var options = faceDetectorType === "ssd"
+                    ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
+                    : new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+                var detections = await faceapi.detectAllFaces(video, options)
+                    .withFaceLandmarks()
+                    .withFaceExpressions()
+                    .withAgeAndGender();
+                var normalizedResult = normalizeFaceResult(detections);
+                doWholeSpecificFunction(normalizedResult);
+            }
+        } else if (model === "h-mp") {
             // Hand model
             var result = currentLandmarker.detectForVideo(video, startTimeMs);
             // Normalize hand results to match pose format
@@ -1992,6 +2508,48 @@ function normalizeHandResult(result) {
     };
 }
 
+// Normalize face-api.js results to match the landmark format expected by doWholeSpecificFunction
+function normalizeFaceResult(detections) {
+    var totalPoints = 68 * MAX_FACES;
+    var combinedLandmarks = [];
+    for (var i = 0; i < totalPoints; i++) {
+        combinedLandmarks.push({ x: -20000, y: -20000, z: 0, visibility: 0 });
+    }
+
+    var hasAnyFace = false;
+    latestFaceResults = null;
+
+    if (detections && detections.length > 0) {
+        // Sort faces left-to-right by bounding box x position
+        var sorted = detections.slice().sort(function(a, b) {
+            return a.detection.box.x - b.detection.box.x;
+        });
+
+        // Store sorted results for emotion/age/gender access
+        latestFaceResults = sorted;
+
+        var videoWidth = video.videoWidth || 1;
+        var videoHeight = video.videoHeight || 1;
+
+        for (var f = 0; f < Math.min(sorted.length, MAX_FACES); f++) {
+            var landmarks = sorted[f].landmarks.positions || sorted[f].landmarks._positions;
+            var offset = f * 68;
+            for (var i = 0; i < landmarks.length && i < 68; i++) {
+                combinedLandmarks[offset + i] = {
+                    x: landmarks[i].x / videoWidth,
+                    y: landmarks[i].y / videoHeight,
+                    z: 0,
+                    visibility: 1
+                };
+            }
+            hasAnyFace = true;
+        }
+    }
+
+    return {
+        landmarks: hasAnyFace ? [combinedLandmarks] : []
+    };
+}
 
 document.getElementById("smoothingSlider").onchange = (event) => {
     state.smoothing = parseInt(event.currentTarget.value)
@@ -2025,6 +2583,7 @@ var isDivHidden = {
     "xyContent": false,
     "angleContent": false,
     "distanceContent": false,
+    "emotionsContent": false,
 }
 
 document.getElementById("spatialBoxesContentShowHide").onclick = function() {
@@ -2041,6 +2600,9 @@ document.getElementById("angleContentShowHide").onclick = function() {
 }
 document.getElementById("distanceContentShowHide").onclick = function() {
     showHide("distanceContent")
+}
+document.getElementById("emotionsContentShowHide").onclick = function() {
+    showHide("emotionsContent")
 }
 
 // DELETE THIS AFTER DEVELOPING ANGLES
@@ -2343,6 +2905,11 @@ function renderInsidesOfMidiModal(){
         var xyLabel = allPoints[state.xy[i].pt]+" - "+(["X","Y"][state.xy[i].i])
         var label = "xy: "+xyLabel
         divsToAdd.push(createMidiMapDiv(state.xy[i].cc, label))
+    }
+    var emotionsList = state.emotions || [];
+    for (var i = 0; i < emotionsList.length; i++) {
+        var label = "emotion: Face " + (emotionsList[i].face + 1) + " " + emotionsList[i].attr;
+        divsToAdd.push(createMidiMapDiv(emotionsList[i].cc, label));
     }
 
     // now sort them to display in order
