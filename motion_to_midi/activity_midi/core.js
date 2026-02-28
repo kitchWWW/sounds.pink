@@ -919,7 +919,7 @@ function updateDisplayWithState() {
     }
     document.getElementById('emotionsUIList').innerHTML = "";
     var emotionsList = state.emotions || [];
-    var emotionAttrs = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised", "age", "gender"];
+    var emotionAttrs = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised", "age", "male", "female", "confidence"];
     for (var emotionIndex = 0; emotionIndex < emotionsList.length; emotionIndex++) {
         var iDiv = document.createElement('div');
         iDiv.style.marginBottom = "6px";
@@ -1512,7 +1512,11 @@ function doWholeSpecificFunction(result) {
                     canvasCtx.save();
                     canvasCtx.translate(labelX, labelY);
                     canvasCtx.scale(-1, 1);
-                    canvasCtx.fillText("F" + (f + 1), 0, 0);
+                    var faceLabel = "F" + (f + 1);
+                    if (latestFaceResults && latestFaceResults[f] && latestFaceResults[f].detection) {
+                        faceLabel += " " + Math.round(latestFaceResults[f].detection.score * 100) + "%";
+                    }
+                    canvasCtx.fillText(faceLabel, 0, 0);
                     canvasCtx.restore();
                 }
             }
@@ -1667,8 +1671,12 @@ function doWholeSpecificFunction(result) {
                 var val = 0;
                 if (emo.attr === "age") {
                     val = faceResult.age / 100; // normalize 0-100 to 0-1
-                } else if (emo.attr === "gender") {
-                    val = faceResult.genderProbability; // already 0-1
+                } else if (emo.attr === "male") {
+                    val = faceResult.genderProbability; // already 0-1 (1=male)
+                } else if (emo.attr === "female") {
+                    val = 1 - faceResult.genderProbability; // invert (1=female)
+                } else if (emo.attr === "confidence") {
+                    val = (faceResult.detection && faceResult.detection.score) || 0; // already 0-1
                 } else {
                     val = (faceResult.expressions && faceResult.expressions[emo.attr]) || 0; // already 0-1
                 }
@@ -2438,8 +2446,8 @@ async function predictWebcam() {
                 // models still loading, skip this frame
             } else {
                 var options = faceDetectorType === "ssd"
-                    ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
-                    : new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+                    ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.25 })
+                    : new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.25 });
                 var detections = await faceapi.detectAllFaces(video, options)
                     .withFaceLandmarks()
                     .withFaceExpressions()
