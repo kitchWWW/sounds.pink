@@ -1254,20 +1254,29 @@ function addToRectCount(point, newRectCounts) {
     newRectCounts[w + "-" + h] += 1
 }
 var oldRectCounts = {}
-
-
+var boxNoteState = {}  // true if note is currently on for a given box id
+var boxExitCount = {}  // consecutive frames a marker has been absent from a box
+var EXIT_DEBOUNCE = 3  // frames outside box required before note off fires
 
 function processRectCounts(newRectCounts) {
     for (var w = 0; w < state.width; w++) {
         for (var h = 0; h < state.height; h++) {
-            if ((w + "-" + h in state.mappings)) {
-                if (newRectCounts[w + "-" + h] > 0 && oldRectCounts[w + "-" + h] == 0) {
-                    // send a note on!!!!
-                    sendNoteOn(w + "-" + h)
-                }
-                if (newRectCounts[w + "-" + h] == 0 && oldRectCounts[w + "-" + h] > 0) {
-                    // send a note off!!!!
-                    sendNoteOff(w + "-" + h)
+            var id = w + "-" + h;
+            if (id in state.mappings) {
+                var inBox = (newRectCounts[id] || 0) > 0;
+                if (inBox) {
+                    boxExitCount[id] = 0;
+                    if (!boxNoteState[id]) {
+                        boxNoteState[id] = true;
+                        sendNoteOn(id);
+                    }
+                } else {
+                    boxExitCount[id] = (boxExitCount[id] || 0) + 1;
+                    if (boxNoteState[id] && boxExitCount[id] >= EXIT_DEBOUNCE) {
+                        boxNoteState[id] = false;
+                        boxExitCount[id] = 0;
+                        sendNoteOff(id);
+                    }
                 }
             }
         }
@@ -1349,7 +1358,7 @@ function doWholeSpecificFunction(result) {
                 canvasCtx.rect(w * wunit, h * hunit, wunit, hunit);
                 canvasCtx.fill();
             }
-            if (oldRectCounts[w + "-" + h] > 0 && w + "-" + h in state.mappings) {
+            if (boxNoteState[w + "-" + h] && w + "-" + h in state.mappings) {
                 canvasCtx.fillStyle = colorParams[colorID].accentColor2;
                 canvasCtx.rect(w * wunit, h * hunit, wunit, hunit);
                 canvasCtx.fill();
@@ -1701,13 +1710,14 @@ function clearEverything() {
         sendMidiCC(14 + i, 0, 127)
         prevlandmarks = null
     }
-
-    var emptyRectCounts = {}
-    for (const [key, value] of Object.entries(oldRectCounts)) {
-        emptyRectCounts[key] = 0
+    for (var id in boxNoteState) {
+        if (boxNoteState[id]) {
+            sendNoteOff(id);
+        }
     }
-    processRectCounts(emptyRectCounts)
-    oldRectCounts = emptyRectCounts
+    boxNoteState = {};
+    boxExitCount = {};
+    oldRectCounts = {};
 }
 
 
