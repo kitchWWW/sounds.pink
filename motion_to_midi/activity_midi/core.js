@@ -1286,6 +1286,15 @@ var boxNoteState = {}  // true if note is currently on for a given box id
 var boxExitCount = {}  // consecutive frames a marker has been absent from a box
 var EXIT_DEBOUNCE = 3  // frames outside box required before note off fires
 
+function anyOtherBoxActiveForNote(excludeId, note) {
+    for (var otherId in boxNoteState) {
+        if (otherId !== excludeId && boxNoteState[otherId] && getMappingNote(otherId) === note) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function processRectCounts(newRectCounts) {
     for (var w = 0; w < state.width; w++) {
         for (var h = 0; h < state.height; h++) {
@@ -1296,14 +1305,18 @@ function processRectCounts(newRectCounts) {
                     boxExitCount[id] = 0;
                     if (!boxNoteState[id]) {
                         boxNoteState[id] = true;
-                        sendNoteOn(id);
+                        if (!anyOtherBoxActiveForNote(id, getMappingNote(id))) {
+                            sendNoteOn(id);
+                        }
                     }
                 } else {
                     boxExitCount[id] = (boxExitCount[id] || 0) + 1;
                     if (boxNoteState[id] && boxExitCount[id] >= EXIT_DEBOUNCE) {
                         boxNoteState[id] = false;
                         boxExitCount[id] = 0;
-                        sendNoteOff(id);
+                        if (!anyOtherBoxActiveForNote(id, getMappingNote(id))) {
+                            sendNoteOff(id);
+                        }
                     }
                 }
             }
