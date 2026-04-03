@@ -1208,7 +1208,8 @@ function drawActiveBoxes() {
             checkbox.addEventListener('change', (event) => {
                 var id = event.srcElement.myIndex
                 if (event.srcElement.checked) {
-                    state.mappings[id] = newCandidateNumber(id)
+                    var n = newCandidateNumber(id);
+                    state.mappings[id] = { v: n, l: toNoteName(n) };
                 } else {
                     delete state.mappings[id]
                 }
