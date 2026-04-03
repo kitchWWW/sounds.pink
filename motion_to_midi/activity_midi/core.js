@@ -587,14 +587,22 @@ function noteNameToMidi(str) {
     return midi;
 }
 
+function getMappingNote(id) {
+    var m = state.mappings[id];
+    return (m !== null && typeof m === 'object') ? m.v : m;
+}
+function getMappingLabel(id) {
+    var m = state.mappings[id];
+    return (m !== null && typeof m === 'object') ? m.l : String(m);
+}
+
 var state = {
     boxEnabled: [],
     height: 4,
     width: 5,
     smoothing: 3,
     mappings: {
-    }, // for boxes
-    mappingLabels: {}, // display strings for box notes (raw user input)
+    }, // for boxes; values are either an int or {v:<int>, l:<string>} when user typed a note name
     angles: [],
     dist: [],
     xy:[],
@@ -683,7 +691,7 @@ function updateDisplayWithState() {
             document.getElementById("checkbox" + id).checked = id in state.mappings
             if (id in state.mappings) {
                 document.getElementById("midiNumb" + id).disabled = false
-                document.getElementById("midiNumb" + id).value = (state.mappingLabels && state.mappingLabels[id]) || state.mappings[id]
+                document.getElementById("midiNumb" + id).value = getMappingLabel(id)
             } else {
                 document.getElementById("midiNumb" + id).value = ""
                 document.getElementById("midiNumb" + id).disabled = true
@@ -1201,11 +1209,8 @@ function drawActiveBoxes() {
                 var id = event.srcElement.myIndex
                 if (event.srcElement.checked) {
                     state.mappings[id] = newCandidateNumber(id)
-                    if (!state.mappingLabels) state.mappingLabels = {};
-                    state.mappingLabels[id] = String(state.mappings[id]);
                 } else {
                     delete state.mappings[id]
-                    if (state.mappingLabels) delete state.mappingLabels[id];
                 }
                 state.mappings[id]
                 stateHasBeenUpdated()
@@ -1227,17 +1232,14 @@ function drawActiveBoxes() {
                     isNumber = true;
                     raw = String(newVal);
                 }
-                state.mappings[event.srcElement.myIndex] = newVal;
-                if (!state.mappingLabels) state.mappingLabels = {};
-                state.mappingLabels[event.srcElement.myIndex] = raw;
+                state.mappings[event.srcElement.myIndex] = isNumber ? newVal : { v: newVal, l: raw };
                 var noteLabel = document.getElementById("noteLabel" + event.srcElement.myIndex);
                 noteLabel.innerHTML = isNumber ? " " + toNoteName(newVal) : "";
                 stateHasBeenUpdated();
             })
             if(state.mappings[id]){
-                var storedLabel = state.mappingLabels && state.mappingLabels[id];
-                var labelIsNumber = !storedLabel || (String(parseInt(storedLabel)) === storedLabel);
-                myNoteLabel.innerHTML = labelIsNumber ? " " + toNoteName(state.mappings[id]) : "";
+                var labelIsNumber = typeof state.mappings[id] !== 'object';
+                myNoteLabel.innerHTML = labelIsNumber ? " " + toNoteName(getMappingNote(id)) : "";
             }
 
             iDiv.appendChild(checkbox)
@@ -1310,11 +1312,11 @@ document.getElementById("widthTextBox").onchange = (event) => {
 }
 
 function sendNoteOn(id) {
-    sendToMidi([0x90, state.mappings[id], 0x7f])
+    sendToMidi([0x90, getMappingNote(id), 0x7f])
 }
 
 function sendNoteOff(id) {
-    sendToMidi([0x80, state.mappings[id], 0])
+    sendToMidi([0x80, getMappingNote(id), 0])
 }
 
 function sendMidiCC(ccChan, val, max) {
@@ -1380,7 +1382,7 @@ function doWholeSpecificFunction(result) {
                 canvasCtx.fill();
             }
             if (w + "-" + h in state.mappings) {
-                var noteLabel = (state.mappingLabels && state.mappingLabels[w + "-" + h]) || toNoteName(state.mappings[w + "-" + h]);
+                var noteLabel = getMappingLabel(w + "-" + h);
                 canvasCtx.fillStyle = colorParams[colorID].primaryOutline;
                 canvasCtx.font = "bold 25px Roboto";
                 var notePad = 5;
@@ -2088,12 +2090,15 @@ function updateStateToWorkWithCurrentStateObject(validState, newState){
         }
         delete newState['xySending']
     }
-    // Backfill mappingLabels for any mapped boxes missing a display label
-    if (!newState.mappingLabels) newState.mappingLabels = {};
-    for (var k in newState.mappings) {
-        if (!(k in newState.mappingLabels)) {
-            newState.mappingLabels[k] = String(newState.mappings[k]);
+    // Migrate old mappingLabels format: fold labels into mappings entries
+    if (newState.mappingLabels) {
+        for (var k in newState.mappingLabels) {
+            var label = newState.mappingLabels[k];
+            if (k in newState.mappings && (isNaN(parseInt(label)) || String(parseInt(label)) !== label)) {
+                newState.mappings[k] = { v: newState.mappings[k], l: label };
+            }
         }
+        delete newState.mappingLabels;
     }
 
     // Only add emotions array if face model is selected
