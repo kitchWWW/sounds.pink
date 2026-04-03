@@ -2091,17 +2091,6 @@ function updateStateToWorkWithCurrentStateObject(validState, newState){
         }
         delete newState['xySending']
     }
-    // Migrate old mappingLabels format: fold labels into mappings entries
-    if (newState.mappingLabels) {
-        for (var k in newState.mappingLabels) {
-            var label = newState.mappingLabels[k];
-            if (k in newState.mappings && (isNaN(parseInt(label)) || String(parseInt(label)) !== label)) {
-                newState.mappings[k] = { v: newState.mappings[k], l: label };
-            }
-        }
-        delete newState.mappingLabels;
-    }
-
     // Only add emotions array if face model is selected
     if (newState.md === "f-fa" && !('emotions' in newState)) {
         newState.emotions = [];
