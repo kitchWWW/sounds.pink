@@ -574,13 +574,35 @@ function toNoteName(midiNote) {
     return noteNames[noteIndex] + octave;
 }
 
+function noteNameToMidi(str) {
+    var match = str.trim().match(/^([A-Ga-g])([#b]?)(-?\d+)$/);
+    if (!match) return null;
+    var noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    var noteIndex = noteNames.indexOf(match[1].toUpperCase());
+    if (match[2] === '#') noteIndex += 1;
+    if (match[2] === 'b') noteIndex -= 1;
+    noteIndex = ((noteIndex % 12) + 12) % 12;
+    var midi = (parseInt(match[3]) + 1) * 12 + noteIndex;
+    if (midi < 0 || midi > 127) return null;
+    return midi;
+}
+
+function getMappingNote(id) {
+    var m = state.mappings[id];
+    return (m !== null && typeof m === 'object') ? m.v : m;
+}
+function getMappingLabel(id) {
+    var m = state.mappings[id];
+    return (m !== null && typeof m === 'object') ? m.l : String(m);
+}
+
 var state = {
     boxEnabled: [],
     height: 4,
     width: 5,
     smoothing: 3,
     mappings: {
-    }, // for boxes
+    }, // for boxes; values are either an int or {v:<int>, l:<string>} when user typed a note name
     angles: [],
     dist: [],
     xy:[],
@@ -669,7 +691,7 @@ function updateDisplayWithState() {
             document.getElementById("checkbox" + id).checked = id in state.mappings
             if (id in state.mappings) {
                 document.getElementById("midiNumb" + id).disabled = false
-                document.getElementById("midiNumb" + id).value = state.mappings[id]
+                document.getElementById("midiNumb" + id).value = getMappingLabel(id)
             } else {
                 document.getElementById("midiNumb" + id).value = ""
                 document.getElementById("midiNumb" + id).disabled = true
@@ -1175,6 +1197,7 @@ function drawActiveBoxes() {
             myLabel.innerHTML = id
 
             var myNoteLabel = document.createElement('span');
+            myNoteLabel.id = "noteLabel" + id;
 
             iDiv.id = 'box-' + id;
 
@@ -1185,7 +1208,8 @@ function drawActiveBoxes() {
             checkbox.addEventListener('change', (event) => {
                 var id = event.srcElement.myIndex
                 if (event.srcElement.checked) {
-                    state.mappings[id] = newCandidateNumber(id)
+                    var n = newCandidateNumber(id);
+                    state.mappings[id] = { v: n, l: toNoteName(n) };
                 } else {
                     delete state.mappings[id]
                 }
@@ -1199,20 +1223,24 @@ function drawActiveBoxes() {
             inputField.id = "midiNumb" + id
 
             inputField.addEventListener('change', (event) => {
-
-                var newVal = parseInt(event.srcElement.value)
-                console.log(newVal)
-                if (newVal > 128) {
-                    newVal = newCandidateNumber(id)
+                var raw = event.srcElement.value.trim();
+                var asInt = parseInt(raw);
+                var isNumber = !isNaN(asInt) && String(asInt) === raw;
+                var newVal = isNumber ? asInt : noteNameToMidi(raw);
+                if (newVal === null || newVal === undefined || isNaN(newVal) || newVal > 127 || newVal < 0) {
+                    newVal = newCandidateNumber(event.srcElement.myIndex);
+                    event.srcElement.value = newVal;
+                    isNumber = true;
+                    raw = String(newVal);
                 }
-                if (newVal < 0) {
-                    newVal = newCandidateNumber(id)
-                }
-                state.mappings[event.srcElement.myIndex] = newVal
-                stateHasBeenUpdated()
+                state.mappings[event.srcElement.myIndex] = isNumber ? newVal : { v: newVal, l: raw };
+                var noteLabel = document.getElementById("noteLabel" + event.srcElement.myIndex);
+                noteLabel.innerHTML = isNumber ? " " + toNoteName(newVal) : "";
+                stateHasBeenUpdated();
             })
             if(state.mappings[id]){
-                myNoteLabel.innerHTML = " " +toNoteName(state.mappings[id])
+                var labelIsNumber = typeof state.mappings[id] !== 'object';
+                myNoteLabel.innerHTML = labelIsNumber ? " " + toNoteName(getMappingNote(id)) : "";
             }
 
             iDiv.appendChild(checkbox)
@@ -1285,11 +1313,11 @@ document.getElementById("widthTextBox").onchange = (event) => {
 }
 
 function sendNoteOn(id) {
-    sendToMidi([0x90, state.mappings[id], 0x7f])
+    sendToMidi([0x90, getMappingNote(id), 0x7f])
 }
 
 function sendNoteOff(id) {
-    sendToMidi([0x80, state.mappings[id], 0])
+    sendToMidi([0x80, getMappingNote(id), 0])
 }
 
 function sendMidiCC(ccChan, val, max) {
@@ -1353,6 +1381,17 @@ function doWholeSpecificFunction(result) {
                 canvasCtx.fillStyle = colorParams[colorID].accentColor2;
                 canvasCtx.rect(w * wunit, h * hunit, wunit, hunit);
                 canvasCtx.fill();
+            }
+            if (w + "-" + h in state.mappings) {
+                var noteLabel = getMappingLabel(w + "-" + h);
+                canvasCtx.fillStyle = colorParams[colorID].primaryOutline;
+                canvasCtx.font = "bold 25px Roboto";
+                var notePad = 5;
+                canvasCtx.save();
+                canvasCtx.translate((w + 1) * wunit - notePad, h * hunit + notePad + 25);
+                canvasCtx.scale(-1, 1);
+                canvasCtx.fillText(noteLabel, 0, 0);
+                canvasCtx.restore();
             }
         }
     }
