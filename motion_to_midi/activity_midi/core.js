@@ -2510,11 +2510,20 @@ function dataToQueryString(data) {
 
 function updateStateToWorkWithCurrentStateObject(validState, newState){
     // add backwards compatability
-    if(!('angles' in newState)){
-        newState.angles = []
+    // Links from the older grid_midi call the marker list "enabled". Both apps index the same
+    // pose landmarks, so an old link of that shape still means something here.
+    if('enabled' in newState && !('boxEnabled' in newState)){
+        newState.boxEnabled = newState.enabled
+        delete newState['enabled']
     }
-    if(!('dist' in newState)){
-        newState.dist = []
+    // Fill in anything a saved link predates, from the defaults it is being compared against.
+    // Old links are the only save format there is, and most of these fields are read without
+    // a guard (state.activity.reduce, state.boxEnabled.includes, ...), so a link written
+    // before a field existed would throw on load.
+    for (var key in validState) {
+        if (!(key in newState)) {
+            newState[key] = JSON.parse(JSON.stringify(validState[key]))
+        }
     }
     if('activitySending' in newState){
         if(!('activity' in newState)){
