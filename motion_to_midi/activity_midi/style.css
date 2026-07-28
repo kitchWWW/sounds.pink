@@ -419,6 +419,90 @@ button{
   background: #ccc;
 }
 
+/* Gaze model: the calibrate button goes blue only while a calibration is actually needed */
+#calibrateButton.needsCalibration {
+  background-color: #3171f1;
+}
+#calibrateButton.needsCalibration:hover {
+  background-color: #1f57c8;
+}
+
+/* Gaze model: fullscreen calibration flow */
+#calibrationOverlay {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgb(0,0,0);
+  background: linear-gradient(13deg, rgba(0,0,0,1) 16%, rgba(60,60,60,1) 100%);
+}
+
+.calibrationPoint {
+  position: fixed;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  border: 2px solid black;
+  background: red;
+  opacity: 0.2;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+/* the generic button rules would grey these out on hover, which reads as "broken" */
+.calibrationPoint:hover {
+  background: red;
+}
+
+.calibrationPoint.done,
+.calibrationPoint.done:hover,
+.calibrationPoint:disabled,
+.calibrationPoint:disabled:hover {
+  background: yellow;
+  opacity: 1;
+}
+
+#calibrationPanel {
+  position: fixed;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: 80vw;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  background: rgb(75,75,75);
+  background: linear-gradient(315deg, rgba(75,75,75,1) 16%, rgba(98,98,98,1) 100%);
+}
+
+#calibrationTitle {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+#calibrationText {
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+#calibrationProgress {
+  position: fixed;
+  left: 0;
+  top: 20px;
+  width: 100%;
+  text-align: center;
+  font-style: italic;
+}
+
 /* Narrow window: stack vertically when video would be < 250px */
 @media (max-width: 650px) {
   .container {

@@ -116,6 +116,38 @@ function faceVisible(landmark, faceIndex) {
     return landmark[offset] && landmark[offset].visibility > 0;
 }
 
+// Gaze model landmarks (WebGazer, which tracks a single face with MediaPipe FaceMesh)
+// Index 0 is the gaze point itself: where on the browser window you are looking.
+// The rest are a curated set of the 468 FaceMesh vertices. L/R are from the subject's
+// point of view, which is how MediaPipe (and WebGazer) name them.
+var GAZE_POINT_INDEX = 0;
+var gazePointsData = [
+    { mesh: -1, label: "gaze-location" },
+    { mesh: 1, label: "nose tip" },
+    { mesh: 6, label: "nose bridge" },
+    { mesh: 152, label: "chin" },
+    { mesh: 10, label: "forehead" },
+    { mesh: 263, label: "L eye outer" },
+    { mesh: 362, label: "L eye inner" },
+    { mesh: 386, label: "L eye top" },
+    { mesh: 374, label: "L eye bottom" },
+    { mesh: 33, label: "R eye outer" },
+    { mesh: 133, label: "R eye inner" },
+    { mesh: 159, label: "R eye top" },
+    { mesh: 145, label: "R eye bottom" },
+    { mesh: 334, label: "L eyebrow" },
+    { mesh: 105, label: "R eyebrow" },
+    { mesh: 291, label: "L mouth corner" },
+    { mesh: 61, label: "R mouth corner" },
+    { mesh: 13, label: "lip top" },
+    { mesh: 14, label: "lip bottom" },
+    { mesh: 425, label: "L cheek" },
+    { mesh: 205, label: "R cheek" },
+    { mesh: 454, label: "L temple" },
+    { mesh: 234, label: "R temple" },
+];
+var gazeAllPoints = gazePointsData.map(function(p) { return p.label; });
+
 // Pose model landmarks (33 points)
 var poseAllPoints = [
     "nose",
@@ -271,6 +303,8 @@ function isPrimaryPoint(index) {
         return facePrimaryPointsData.some(function(p) { return p.index === index; });
     } else if (getCurrentModel() === "h-mp") {
         return handPrimaryPointsData.some(function(p) { return p.index === index; });
+    } else if (getCurrentModel() === "g-wg") {
+        return true; // the gaze list is already curated, every point is a primary one
     } else {
         return posePrimaryPoints.includes(poseAllPoints[index]);
     }
@@ -538,6 +572,9 @@ function updatePointArraysForModel() {
     } else if (model === "h-mp") {
         allPoints = handAllPoints
         pointLabelsToDo = handPrimaryPoints
+    } else if (model === "g-wg") {
+        allPoints = gazeAllPoints
+        pointLabelsToDo = gazeAllPoints
     } else {
         allPoints = poseAllPoints
         pointLabelsToDo = posePrimaryPoints
@@ -607,7 +644,7 @@ var state = {
     dist: [],
     xy:[],
     activity:[],
-    md: "p-mp" // model: "p-mp" (pose-mediapipe) or "h-mp" (hand-mediapipe)
+    md: "p-mp" // model: "p-mp" (pose-mediapipe), "h-mp" (hand-mediapipe), "f-fa" (face-faceapi) or "g-wg" (gaze-webgazer)
 }
 
 
@@ -939,6 +976,7 @@ function updateDisplayWithState() {
     if (isFaceMode) {
         document.getElementById("faceDetectorType").value = state.fd || "tiny";
     }
+    updateCalibrateButton();
     document.getElementById('emotionsUIList').innerHTML = "";
     var emotionsList = state.emotions || [];
     var emotionAttrs = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised", "age", "male", "female", "confidence"];
@@ -1101,6 +1139,8 @@ function getDefaultAnglePts() {
         return [36, 30, 45]; // left eye outer, nose tip, right eye outer
     } else if (getCurrentModel() === "h-mp") {
         return [4, 5, 8]; // thumb tip, index 0 (base), index 3 (tip) - left hand
+    } else if (getCurrentModel() === "g-wg") {
+        return [GAZE_POINT_INDEX, 1, 100]; // gaze-location, nose tip, up
     } else {
         return [15, 11, 23]; // wrist L, shoulder L, hip L
     }
@@ -1111,6 +1151,8 @@ function getDefaultDistancePts() {
         return [36, 45]; // left eye outer, right eye outer
     } else if (getCurrentModel() === "h-mp") {
         return [4, 8]; // thumb 3 (tip), index 3 (tip) - left hand
+    } else if (getCurrentModel() === "g-wg") {
+        return [GAZE_POINT_INDEX, 1]; // gaze-location, nose tip
     } else {
         return [15, 16]; // wrist L, wrist R
     }
@@ -1121,6 +1163,8 @@ function getDefaultActivityPt() {
         return 30; // nose tip
     } else if (getCurrentModel() === "h-mp") {
         return 8; // index 3 (tip) - left hand
+    } else if (getCurrentModel() === "g-wg") {
+        return GAZE_POINT_INDEX; // gaze-location
     } else {
         return 15; // wrist L
     }
@@ -1131,6 +1175,8 @@ function getDefaultXYPt() {
         return 30; // nose tip
     } else if (getCurrentModel() === "h-mp") {
         return 0; // wrist - left hand
+    } else if (getCurrentModel() === "g-wg") {
+        return GAZE_POINT_INDEX; // gaze-location
     } else {
         return 0; // nose
     }
@@ -1774,6 +1820,374 @@ function clearEverything() {
 
 
 
+// ========================== GAZE MODEL (WEBGAZER) ============================
+
+var WEBGAZER_SRC = "https://cdn.jsdelivr.net/npm/webgazer@3.5.3/dist/webgazer.js"
+var FACEMESH_SOLUTION_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"
+var GAZE_CAL_DEVICE_KEY = "mim_gaze_calibrated_device" // which camera the saved calibration belongs to
+
+var webgazerLoading = null // promise, so the script only ever gets injected once
+var gazeRunning = false // true once webgazer.begin() has come up
+var gazeStarting = null // promise while it is still coming up
+var latestGaze = null // {x, y} in browser window pixels
+var latestGazeTime = 0
+var midiIsEnabled = false
+var currentCameraDeviceId = null
+// tracked separately from webcamRunning, which is declared further down the file than
+// the first updateDisplayWithState() call and so cannot be read this early
+var cameraIsOn = false
+
+function loadWebGazer() {
+    if (window.webgazer) return Promise.resolve()
+    if (webgazerLoading) return webgazerLoading
+    webgazerLoading = new Promise(function(resolve, reject) {
+        var script = document.createElement("script")
+        script.src = WEBGAZER_SRC
+        script.onload = function() { resolve() }
+        script.onerror = function() { reject(new Error("could not load webgazer")) }
+        document.head.appendChild(script)
+    })
+    return webgazerLoading
+}
+
+// The two MediaPipe runtimes will not come up in either order. Once webgazer's FaceMesh wasm
+// has started, building a tasks-vision landmarker dies on a clobbered global Module, and no
+// amount of tidying up the globals brings it back. The other way round is fine, so the pose
+// and hand landmarkers get built before webgazer ever loads, which keeps model switching
+// working afterwards. Both are needed: one is not enough, each one instantiates the wasm.
+// (face-api, used by the Face model, is unaffected — it is tensorflow.js, not emscripten.)
+async function preloadLandmarkersBeforeGaze() {
+    if (!poseLandmarker) await createPoseLandmarker()
+    if (!handLandmarker) await createHandLandmarker()
+}
+
+// Starts the eye tracker. It runs its own camera stream and its own FaceMesh pass,
+// separate from the video element the rest of the page draws on.
+async function startGaze() {
+    if (gazeRunning) return
+    if (gazeStarting) return gazeStarting
+    gazeStarting = (async function() {
+        await preloadLandmarkersBeforeGaze()
+        await loadWebGazer()
+        webgazer.params.faceMeshSolutionPath = FACEMESH_SOLUTION_PATH
+        // Hide webgazer's own preview corner *before* begin(), otherwise it flashes up in the
+        // top left for a moment while starting. It only comes out during calibration.
+        setGazePreviewVisible(false)
+        if (currentCameraDeviceId) {
+            webgazer.params.camConstraints = { video: { deviceId: { exact: currentCameraDeviceId } } }
+        }
+        webgazer.setRegression("ridge")
+            .setGazeListener(function(data) {
+                if (!data) return
+                latestGaze = data
+                latestGazeTime = performance.now()
+            })
+            .saveDataAcrossSessions(true)
+            .applyKalmanFilter(true)
+        await webgazer.begin()
+        // By default webgazer trains itself on every click and mouse move anywhere in the
+        // page, which would quietly wreck a calibration the moment you touched the controls.
+        // The listeners only go back on while the calibration overlay is up.
+        webgazer.removeMouseEventListeners()
+        setGazePreviewVisible(false)
+        gazeRunning = true
+    })()
+    try {
+        await gazeStarting
+    } catch (e) {
+        console.error("could not start eye tracking", e)
+    }
+    gazeStarting = null
+    updateCalibrateButton()
+}
+
+// webgazer's preview corner: its own video, face mesh overlay, framing box and gaze dot.
+// Kept out of sight during normal use, brought out while calibrating so you can frame yourself.
+// These have to be set as params before begin() to stop the elements appearing at all, and as
+// calls afterwards to move ones that already exist.
+function setGazePreviewVisible(visible) {
+    webgazer.params.showVideoPreview = visible
+    webgazer.showVideo(visible)
+    webgazer.showFaceOverlay(visible)
+    webgazer.showFaceFeedbackBox(visible)
+    webgazer.showPredictionPoints(visible)
+    if (!visible) return
+    // The gaze dot follows your predicted gaze, so it can end up sitting right on the dot you
+    // are trying to click and swallow it. It is decoration, it should never take a click.
+    var gazeDot = document.getElementById(webgazer.params.gazeDotId)
+    if (gazeDot) gazeDot.style.pointerEvents = "none"
+
+    var videoContainer = document.getElementById(webgazer.params.videoContainerId)
+    if (!videoContainer) return
+    // webgazer parks its preview in the top left corner, right on top of the first calibration
+    // dot. Move it inside the overlay so the dots paint over it, and stop it taking clicks,
+    // otherwise that dot can never be clicked either.
+    videoContainer.style.pointerEvents = "none"
+    videoContainer.style.zIndex = 0
+    document.getElementById("calibrationOverlay").appendChild(videoContainer)
+}
+
+function stopGaze() {
+    if (!window.webgazer || !gazeRunning) return
+    gazeRunning = false
+    latestGaze = null
+    try {
+        // pause first, otherwise its loop runs one more time against elements that are gone
+        webgazer.pause()
+        webgazer.stopVideo()
+    } catch (e) { /* nothing streaming */ }
+    try {
+        webgazer.end()
+    } catch (e) { /* already torn down */ }
+}
+
+// Only one calibration is kept at a time, tagged with the camera it was made on.
+// Pointing at a different camera throws it away, so the button goes blue again.
+function gazeIsCalibrated() {
+    return !!currentCameraDeviceId && localStorage.getItem(GAZE_CAL_DEVICE_KEY) === currentCameraDeviceId
+}
+
+async function dropCalibrationIfCameraChanged() {
+    if (!currentCameraDeviceId) return
+    var saved = localStorage.getItem(GAZE_CAL_DEVICE_KEY)
+    if (!saved || saved === currentCameraDeviceId) return
+    localStorage.removeItem(GAZE_CAL_DEVICE_KEY)
+    if (window.webgazer) {
+        try { await webgazer.clearData() } catch (e) { /* nothing stored yet */ }
+    }
+}
+
+function updateCalibrateButton() {
+    var button = document.getElementById("calibrateButton")
+    if (getCurrentModel() !== "g-wg") {
+        button.style.display = "none"
+        return
+    }
+    button.style.display = ""
+    var ready = cameraIsOn && midiIsEnabled && gazeRunning
+    button.disabled = !ready
+    if (gazeIsCalibrated()) {
+        button.innerHTML = "recalibrate"
+        button.classList.remove("needsCalibration")
+    } else {
+        button.innerHTML = "calibrate now!"
+        // the blue is a call to action, so only wear it once the button can actually be used
+        button.classList.toggle("needsCalibration", ready)
+    }
+}
+
+// Build the landmark array the rest of the page expects: index 0 is the gaze point,
+// the others are FaceMesh vertices normalized against webgazer's own video buffer.
+function normalizeGazeResult() {
+    var combinedLandmarks = []
+    for (var i = 0; i < gazePointsData.length; i++) {
+        combinedLandmarks.push({ x: -20000, y: -20000, z: 0, visibility: 0 })
+    }
+
+    if (!gazeRunning || !window.webgazer) {
+        return { landmarks: [] }
+    }
+
+    var positions = null
+    var meshCanvas = null
+    try {
+        positions = webgazer.getTracker().getPositions()
+        meshCanvas = webgazer.getVideoElementCanvas()
+    } catch (e) {
+        return { landmarks: [] }
+    }
+    if (!positions || !meshCanvas || !meshCanvas.width || !meshCanvas.height) {
+        return { landmarks: [] }
+    }
+
+    for (var i = 0; i < gazePointsData.length; i++) {
+        if (i === GAZE_POINT_INDEX) continue
+        var pt = positions[gazePointsData[i].mesh]
+        if (!pt) continue
+        combinedLandmarks[i] = {
+            x: pt[0] / meshCanvas.width,
+            y: pt[1] / meshCanvas.height,
+            z: 0,
+            visibility: 1
+        }
+    }
+
+    // The prediction is a spot on the browser window, not a spot in the camera image, so it
+    // gets normalized against the window. x is flipped because the canvas is drawn mirrored:
+    // looking at the left of your screen should light up the box drawn on the left.
+    if (latestGaze && (performance.now() - latestGazeTime) < 1000) {
+        combinedLandmarks[GAZE_POINT_INDEX] = {
+            x: capForGrid(1 - (latestGaze.x / window.innerWidth)),
+            y: capForGrid(latestGaze.y / window.innerHeight),
+            z: 0,
+            visibility: 1
+        }
+    }
+
+    return { landmarks: [combinedLandmarks] }
+}
+
+// Like capZeroOne, but never returns exactly 1, which would fall outside the last grid column
+function capForGrid(numb) {
+    return Math.min(Math.max(numb, 0), 0.9999)
+}
+
+// ---- Calibration, following the flow in the WebGazer demo: nine points, five clicks each.
+// ---- The demo's accuracy measurement is left out, it only works on their own page: turning
+// ---- webgazer's storingPoints on makes it draw into a #plotting_canvas that only exists there.
+
+var CALIBRATION_CLICKS_PER_POINT = 5
+var CALIBRATION_POSITIONS = [
+    { left: "5%", top: "8%" }, { left: "50%", top: "8%" }, { left: "95%", top: "8%" },
+    { left: "5%", top: "50%" }, { left: "50%", top: "50%" }, { left: "95%", top: "50%" },
+    { left: "5%", top: "92%" }, { left: "50%", top: "92%" }, { left: "95%", top: "92%" }
+]
+
+var calibrationClicks = []
+var calibrationPointsDone = 0
+var calibrationBuilt = false
+
+function buildCalibrationPoints() {
+    if (calibrationBuilt) return
+    var holder = document.getElementById("calibrationPoints")
+    for (var i = 0; i < CALIBRATION_POSITIONS.length; i++) {
+        var dot = document.createElement("button")
+        dot.className = "calibrationPoint"
+        dot.id = "calibrationPoint" + i
+        dot.style.left = CALIBRATION_POSITIONS[i].left
+        dot.style.top = CALIBRATION_POSITIONS[i].top
+        dot.myIndex = i
+        dot.addEventListener("click", function(event) {
+            calibrationPointClicked(event.currentTarget)
+        })
+        holder.appendChild(dot)
+    }
+    calibrationBuilt = true
+}
+
+function setCalibrationPointsVisible(visible) {
+    for (var i = 0; i < CALIBRATION_POSITIONS.length; i++) {
+        document.getElementById("calibrationPoint" + i).style.display = visible ? "" : "none"
+    }
+}
+
+function showCalibrationPanel(title, text, primary, secondary) {
+    document.getElementById("calibrationPanel").style.display = ""
+    document.getElementById("calibrationTitle").innerHTML = title
+    document.getElementById("calibrationText").innerHTML = text
+    var primaryButton = document.getElementById("calibrationPrimary")
+    primaryButton.innerHTML = primary.label
+    primaryButton.onclick = primary.action
+    var secondaryButton = document.getElementById("calibrationSecondary")
+    if (secondary) {
+        secondaryButton.style.display = ""
+        secondaryButton.innerHTML = secondary.label
+        secondaryButton.onclick = secondary.action
+    } else {
+        secondaryButton.style.display = "none"
+    }
+}
+
+function openCalibration() {
+    if (!gazeRunning) return
+    buildCalibrationPoints()
+    document.getElementById("calibrationOverlay").style.display = "block"
+    document.getElementById("calibrationProgress").innerHTML = ""
+    setCalibrationPointsVisible(false)
+    // Hand the clicks back to webgazer for the duration of the overlay. Its own listener is
+    // what trains the model and writes it to storage, so calibrating without it would leave
+    // nothing to reload next time.
+    webgazer.addMouseEventListeners()
+    setGazePreviewVisible(true)
+
+    showCalibrationPanel(
+        "Calibration",
+        "Click each of the 9 dots 5 times, until it turns yellow.<br><br>Look right at each dot as you click it, and try to keep your head still.",
+        { label: "start", action: beginCalibrationPoints },
+        { label: "cancel", action: closeCalibration }
+    )
+}
+
+async function beginCalibrationPoints() {
+    // Start from a clean slate. Training on top of an older calibration drags the new one
+    // toward wherever you were sitting last time, and after a resize it is plainly wrong.
+    localStorage.removeItem(GAZE_CAL_DEVICE_KEY)
+    try { await webgazer.clearData() } catch (e) { /* nothing stored yet */ }
+    updateCalibrateButton()
+
+    calibrationClicks = []
+    calibrationPointsDone = 0
+    for (var i = 0; i < CALIBRATION_POSITIONS.length; i++) {
+        calibrationClicks.push(0)
+        var dot = document.getElementById("calibrationPoint" + i)
+        dot.classList.remove("done")
+        dot.disabled = false
+        dot.style.opacity = 0.2
+    }
+    document.getElementById("calibrationPanel").style.display = "none"
+    setCalibrationPointsVisible(true)
+    updateCalibrationProgress()
+}
+
+function updateCalibrationProgress() {
+    document.getElementById("calibrationProgress").innerHTML =
+        calibrationPointsDone + " of " + CALIBRATION_POSITIONS.length + " points calibrated &nbsp;&nbsp; (esc to cancel)"
+}
+
+// webgazer's own click listener has already trained on this click by the time we get here,
+// so all this does is keep score
+function calibrationPointClicked(dot) {
+    var index = dot.myIndex
+    calibrationClicks[index] += 1
+    if (calibrationClicks[index] >= CALIBRATION_CLICKS_PER_POINT) {
+        dot.classList.add("done")
+        dot.disabled = true
+        calibrationPointsDone += 1
+        updateCalibrationProgress()
+    } else {
+        dot.style.opacity = 0.2 * calibrationClicks[index] + 0.2
+    }
+
+    if (calibrationPointsDone >= CALIBRATION_POSITIONS.length) {
+        finishCalibration()
+    }
+}
+
+function finishCalibration() {
+    localStorage.setItem(GAZE_CAL_DEVICE_KEY, currentCameraDeviceId || "")
+    closeCalibration()
+}
+
+function closeCalibration() {
+    document.getElementById("calibrationOverlay").style.display = "none"
+    document.getElementById("calibrationPanel").style.display = ""
+    document.getElementById("calibrationProgress").innerHTML = ""
+    if (calibrationBuilt) setCalibrationPointsVisible(false)
+    if (window.webgazer && gazeRunning) {
+        // back to ignoring clicks, so using the rest of the page cannot skew the calibration
+        webgazer.removeMouseEventListeners()
+        setGazePreviewVisible(false)
+    }
+    updateCalibrateButton()
+}
+
+document.getElementById("calibrateButton").onclick = openCalibration
+
+// Gaze is measured against the browser window, so resizing moves every target the calibration
+// was trained on. Mark it stale and let the button go blue again.
+window.addEventListener("resize", function() {
+    if (getCurrentModel() !== "g-wg") return
+    if (!gazeIsCalibrated()) return
+    localStorage.removeItem(GAZE_CAL_DEVICE_KEY)
+    updateCalibrateButton()
+})
+
+document.addEventListener("keydown", function(event) {
+    if (event.key !== "Escape") return
+    if (document.getElementById("calibrationOverlay").style.display !== "block") return
+    closeCalibration()
+})
+
 // ========================== LIBRARY BELOW ============================
 
 
@@ -1839,6 +2253,7 @@ async function doCameraFirst() {
 async function setCamera(deviceId) {
     try {
         webcamRunning = false
+        cameraIsOn = false
         const constraints = {
             video: {
                 deviceId: {
@@ -1850,6 +2265,20 @@ async function setCamera(deviceId) {
         const videoElement = document.getElementById('webcam');
         videoElement.srcObject = stream;
         webcamRunning = true
+        cameraIsOn = true
+
+        var cameraChanged = currentCameraDeviceId !== null && currentCameraDeviceId !== deviceId
+        currentCameraDeviceId = deviceId
+        if (getCurrentModel() === "g-wg") {
+            // a calibration only counts for the camera it was made on
+            await dropCalibrationIfCameraChanged()
+            if (cameraChanged) {
+                // deviceId cannot be swapped on a live track, so the tracker has to come back up
+                stopGaze()
+            }
+            startGaze()
+        }
+        updateCalibrateButton()
     } catch (error) {
         console.error('Error setting camera.', error);
     }
@@ -1888,6 +2317,8 @@ function enableMidiStuff() {
 
 function onMIDISuccess(midiAccess) {
     btn.disabled = false
+    midiIsEnabled = true
+    updateCalibrateButton()
     const midiOutputDevicesSelect = document.getElementById('midiOutputDevices');
     const outputs = midiAccess.outputs.values();
     var midiOutsAdded = 0
@@ -2273,6 +2704,11 @@ const loadCurrentModel = async () => {
             await createHandLandmarker();
         }
         currentLandmarker = handLandmarker;
+    } else if (model === "g-wg") {
+        // do this now, while the button already says "loading...", rather than at camera time
+        await preloadLandmarkersBeforeGaze();
+        await loadWebGazer();
+        currentLandmarker = null; // webgazer brings its own tracker, started with the camera
     } else {
         if (!poseLandmarker) {
             await createPoseLandmarker();
@@ -2305,6 +2741,12 @@ async function switchModel(newModel) {
     if (state.md === "f-fa") {
         delete state.emotions;
         delete state.fd;
+    }
+
+    // Tear the eye tracker down when leaving the gaze model
+    if (state.md === "g-wg") {
+        closeCalibration();
+        stopGaze();
     }
 
     // Reset recognizer-related state (keep box mappings)
@@ -2357,6 +2799,11 @@ async function switchModel(newModel) {
     if (webcamRunning && currentLandmarker && newModel !== "f-fa") {
         runningMode = "VIDEO";
         await currentLandmarker.setOptions({ runningMode: "VIDEO" });
+    }
+
+    // The gaze tracker needs a camera, so it only comes up once one is running
+    if (newModel === "g-wg" && webcamRunning) {
+        startGaze();
     }
 
     // Update UI (after checkboxes exist)
@@ -2418,7 +2865,7 @@ function enableCam(event) {
     console.log("hi?")
     doCameraFirst()
     console.log("hi? again")
-    if (!currentLandmarker && getCurrentModel() !== "f-fa") {
+    if (!currentLandmarker && getCurrentModel() !== "f-fa" && getCurrentModel() !== "g-wg") {
         console.log("Wait! landmarker not loaded yet.");
         return;
     }
@@ -2490,7 +2937,12 @@ async function predictWebcam() {
 
     // Now let's start detecting the stream.
     var model = getCurrentModel();
-    if (model !== "f-fa") {
+    if (model !== "f-fa" && model !== "g-wg") {
+        // the landmarker is null for a moment while a model swap is still loading
+        if (!currentLandmarker) {
+            window.requestAnimationFrame(predictWebcam);
+            return;
+        }
         if (runningMode === "IMAGE") {
             runningMode = "VIDEO";
             await currentLandmarker.setOptions({
@@ -2523,6 +2975,9 @@ async function predictWebcam() {
             // Normalize hand results to match pose format
             var normalizedResult = normalizeHandResult(result);
             doWholeSpecificFunction(normalizedResult);
+        } else if (model === "g-wg") {
+            // Gaze model — webgazer runs its own detection loop, we just read the latest of it
+            doWholeSpecificFunction(normalizeGazeResult());
         } else {
             // Pose model
             currentLandmarker.detectForVideo(video, startTimeMs, (result) => {
