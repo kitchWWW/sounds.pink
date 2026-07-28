@@ -54,8 +54,10 @@ DISTRIBUTION_ID="${MIM_DISTRIBUTION_ID:-}"
 
 if [ -z "$BUCKET" ] || [ -z "$DISTRIBUTION_ID" ]; then
   echo "looking up the distribution for $SITE..."
+  # the Aliases.Items guard matters: distributions with no alias at all have no Items key,
+  # and contains() on a missing list errors out the whole expression
   read -r found_id found_origin <<<"$(aws cloudfront list-distributions \
-    --query "DistributionList.Items[?contains(Aliases.Items, '$SITE')].[Id,Origins.Items[0].DomainName] | [0]" \
+    --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, '$SITE')].[Id,Origins.Items[0].DomainName] | [0]" \
     --output text 2>/dev/null || true)"
 
   if [ -z "${found_id:-}" ] || [ "$found_id" = "None" ]; then
