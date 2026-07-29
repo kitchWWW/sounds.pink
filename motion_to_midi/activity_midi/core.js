@@ -7,6 +7,16 @@
 */
 
 
+// Every library, wasm blob and model the page needs is checked in under vendor/, so the app
+// runs with no network at all. Nothing here may point at a CDN. vendor/README.md lists what
+// is pinned and how to refresh it.
+//
+// These resolve against index.html rather than this file. That is the same folder either
+// way, but it is why the static `import`s further down repeat the path instead of using it —
+// an import specifier has to be a literal, and it resolves against core.js instead.
+var VENDOR = "./vendor"
+var MODELS = VENDOR + "/models"
+
 var colorParams = {
     "dark": {
         "grid": "#000000", // black
@@ -1822,8 +1832,10 @@ function clearEverything() {
 
 // ========================== GAZE MODEL (WEBGAZER) ============================
 
-var WEBGAZER_SRC = "https://cdn.jsdelivr.net/npm/webgazer@3.5.3/dist/webgazer.js"
-var FACEMESH_SOLUTION_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"
+var WEBGAZER_SRC = VENDOR + "/webgazer/webgazer.js"
+// webgazer bundles its own copy of the FaceMesh javascript, so this folder only has to hold
+// the assets that copy asks for by name: the loader, the two wasm builds and the binarypb.
+var FACEMESH_SOLUTION_PATH = VENDOR + "/mediapipe/face_mesh"
 var GAZE_CAL_DEVICE_KEY = "mim_gaze_calibrated_device" // which camera the saved calibration belongs to
 
 var webgazerLoading = null // promise, so the script only ever gets injected once
@@ -2661,8 +2673,8 @@ import {
     HandLandmarker,
     FilesetResolver,
     DrawingUtils
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/+esm";
-import * as faceapi from "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.esm.js";
+} from "./vendor/mediapipe/tasks-vision/vision_bundle.esm.js";
+import * as faceapi from "./vendor/face-api/face-api.esm.js";
 
 let poseLandmarker = undefined;
 let handLandmarker = undefined;
@@ -2675,10 +2687,10 @@ const videoWidth = "480px";
 
 // Model loading functions
 const createPoseLandmarker = async () => {
-    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+    const vision = await FilesetResolver.forVisionTasks(VENDOR + "/mediapipe/tasks-vision/wasm");
     poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
         baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+            modelAssetPath: `${MODELS}/mediapipe/pose_landmarker_lite.task`,
             delegate: "GPU"
         },
         runningMode: runningMode,
@@ -2688,10 +2700,10 @@ const createPoseLandmarker = async () => {
 };
 
 const createHandLandmarker = async () => {
-    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+    const vision = await FilesetResolver.forVisionTasks(VENDOR + "/mediapipe/tasks-vision/wasm");
     handLandmarker = await HandLandmarker.createFromOptions(vision, {
         baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+            modelAssetPath: `${MODELS}/mediapipe/hand_landmarker.task`,
             delegate: "GPU"
         },
         runningMode: runningMode,
@@ -2701,7 +2713,7 @@ const createHandLandmarker = async () => {
 };
 
 const loadFaceApiModels = async (detectorType) => {
-    const modelPath = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+    const modelPath = MODELS + "/face-api/";
     if (detectorType === "ssd") {
         await faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath);
     } else {

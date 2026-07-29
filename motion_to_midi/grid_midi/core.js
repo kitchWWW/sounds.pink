@@ -643,7 +643,14 @@ updateDisplayWithState()
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+// This page needs the same tasks-vision build and the same pose model as activity_midi, so it
+// borrows that folder's vendor/ rather than keeping a second 20MB copy of them. It means this
+// page only works when the whole motion_to_midi folder is served, which is how it is used —
+// deploy.sh ships activity_midi alone and has never published this page.
+// See ../activity_midi/vendor/README.md.
+import { PoseLandmarker, FilesetResolver, DrawingUtils } from "../activity_midi/vendor/mediapipe/tasks-vision/vision_bundle.esm.js";
+
+var VENDOR = "../activity_midi/vendor";
 let poseLandmarker = undefined;
 let runningMode = "IMAGE";
 let enableWebcamButton;
@@ -654,10 +661,10 @@ const videoWidth = "480px";
 // loading. Machine Learning models can be large and take a moment to
 // get everything needed to run.
 const createPoseLandmarker = async () => {
-    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+    const vision = await FilesetResolver.forVisionTasks(VENDOR + "/mediapipe/tasks-vision/wasm");
     poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
         baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+            modelAssetPath: `${VENDOR}/models/mediapipe/pose_landmarker_lite.task`,
             delegate: "GPU"
         },
         runningMode: runningMode,
