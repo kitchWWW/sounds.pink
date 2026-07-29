@@ -1857,8 +1857,8 @@ function loadWebGazer() {
 // working afterwards. Both are needed: one is not enough, each one instantiates the wasm.
 // (face-api, used by the Face model, is unaffected — it is tensorflow.js, not emscripten.)
 async function preloadLandmarkersBeforeGaze() {
-    if (!poseLandmarker) await createPoseLandmarker()
-    if (!handLandmarker) await createHandLandmarker()
+    await ensurePoseLandmarker()
+    await ensureHandLandmarker()
 }
 
 // Starts the eye tracker. It runs its own camera stream and its own FaceMesh pass,
@@ -1941,16 +1941,32 @@ function stopGaze() {
     } catch (e) { /* already torn down */ }
 }
 
-// Only one calibration is kept at a time, tagged with the camera it was made on.
-// Pointing at a different camera throws it away, so the button goes blue again.
+// Only one calibration is kept at a time, tagged <deviceId>_<width>_<height> with the camera
+// it was made on and the window it was made in. Gaze is measured against the window, so a
+// resize invalidates it just as surely as a different camera does, and either mismatch puts
+// the button back to blue. Sizing the window back to where it was makes it count again.
+function gazeCalibrationKey() {
+    if (!currentCameraDeviceId) return null
+    return currentCameraDeviceId + "_" + window.innerWidth + "_" + window.innerHeight
+}
+
 function gazeIsCalibrated() {
-    return !!currentCameraDeviceId && localStorage.getItem(GAZE_CAL_DEVICE_KEY) === currentCameraDeviceId
+    var key = gazeCalibrationKey()
+    return !!key && localStorage.getItem(GAZE_CAL_DEVICE_KEY) === key
+}
+
+// the camera half of the saved key, ignoring the trailing _width_height
+function savedCalibrationCamera() {
+    var saved = localStorage.getItem(GAZE_CAL_DEVICE_KEY)
+    if (!saved) return null
+    return saved.split("_").slice(0, -2).join("_")
 }
 
 async function dropCalibrationIfCameraChanged() {
     if (!currentCameraDeviceId) return
-    var saved = localStorage.getItem(GAZE_CAL_DEVICE_KEY)
-    if (!saved || saved === currentCameraDeviceId) return
+    var savedCamera = savedCalibrationCamera()
+    if (!savedCamera || savedCamera === currentCameraDeviceId) return
+    // a calibration made on a different camera is of no use, throw the training data out too
     localStorage.removeItem(GAZE_CAL_DEVICE_KEY)
     if (window.webgazer) {
         try { await webgazer.clearData() } catch (e) { /* nothing stored yet */ }
@@ -2154,7 +2170,7 @@ function calibrationPointClicked(dot) {
 }
 
 function finishCalibration() {
-    localStorage.setItem(GAZE_CAL_DEVICE_KEY, currentCameraDeviceId || "")
+    localStorage.setItem(GAZE_CAL_DEVICE_KEY, gazeCalibrationKey() || "")
     closeCalibration()
 }
 
@@ -2174,12 +2190,13 @@ function closeCalibration() {
 document.getElementById("calibrateButton").onclick = openCalibration
 
 // Gaze is measured against the browser window, so resizing moves every target the calibration
-// was trained on. Mark it stale and let the button go blue again.
+// was trained on. The saved key carries the window size, so this only has to re-read it.
+var resizeCalibrationTimer = null
 window.addEventListener("resize", function() {
     if (getCurrentModel() !== "g-wg") return
-    if (!gazeIsCalibrated()) return
-    localStorage.removeItem(GAZE_CAL_DEVICE_KEY)
-    updateCalibrateButton()
+    // resize fires continuously while dragging, settle before touching the DOM
+    clearTimeout(resizeCalibrationTimer)
+    resizeCalibrationTimer = setTimeout(updateCalibrateButton, 150)
 })
 
 document.addEventListener("keydown", function(event) {
@@ -2696,6 +2713,25 @@ const loadFaceApiModels = async (detectorType) => {
     faceApiLoaded = true;
 };
 
+// Building a landmarker must never run twice or overlap. Two callers both seeing a null
+// landmarker would each start a build, and a tasks-vision build that lands after webgazer's
+// FaceMesh wasm has started aborts on the clobbered global Module. Hand out one shared
+// promise instead, so whoever asks second waits on the first build rather than starting one.
+var poseLandmarkerLoading = null;
+var handLandmarkerLoading = null;
+
+function ensurePoseLandmarker() {
+    if (poseLandmarker) return Promise.resolve(poseLandmarker);
+    if (!poseLandmarkerLoading) poseLandmarkerLoading = createPoseLandmarker();
+    return poseLandmarkerLoading;
+}
+
+function ensureHandLandmarker() {
+    if (handLandmarker) return Promise.resolve(handLandmarker);
+    if (!handLandmarkerLoading) handLandmarkerLoading = createHandLandmarker();
+    return handLandmarkerLoading;
+}
+
 // Load the appropriate model based on state
 const loadCurrentModel = async () => {
     if (enableWebcamButton) {
@@ -2709,9 +2745,7 @@ const loadCurrentModel = async () => {
         await loadFaceApiModels(faceDetectorType);
         currentLandmarker = null; // face-api doesn't use MediaPipe landmarker
     } else if (model === "h-mp") {
-        if (!handLandmarker) {
-            await createHandLandmarker();
-        }
+        await ensureHandLandmarker();
         currentLandmarker = handLandmarker;
     } else if (model === "g-wg") {
         // do this now, while the button already says "loading...", rather than at camera time
@@ -2719,9 +2753,7 @@ const loadCurrentModel = async () => {
         await loadWebGazer();
         currentLandmarker = null; // webgazer brings its own tracker, started with the camera
     } else {
-        if (!poseLandmarker) {
-            await createPoseLandmarker();
-        }
+        await ensurePoseLandmarker();
         currentLandmarker = poseLandmarker;
     }
 
@@ -2795,7 +2827,12 @@ async function switchModel(newModel) {
     initState(); // rebuild the body marker checkboxes
 
     // Reload model
-    await loadCurrentModel();
+    try {
+        await loadCurrentModel();
+    } catch (e) {
+        // a model that fails to load should say so, not leave "loading..." spinning forever
+        console.error("could not load model " + newModel, e);
+    }
 
     if (myGeneration !== switchModelGeneration) {
         clearInterval(dotInterval);
