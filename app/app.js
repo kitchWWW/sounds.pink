@@ -108,6 +108,11 @@ var server = http.createServer(function(request, response) {
   console.log(request.method);
   console.log(request.url);
   if (request.method === "GET") {
+    if (path.normalize(decodeURI(request.url)) !== decodeURI(request.url)) {
+        response.statusCode = 403;
+        response.end();
+        return;
+    }
     if (request.url.startsWith("/getStages")) {
       var completeURL = request.url;
       var ids = completeURL.split("?ids=")[1].split(",")
