@@ -656,6 +656,9 @@ var state = {
     activity:[],
     md: "p-mp" // model: "p-mp" (pose-mediapipe), "h-mp" (hand-mediapipe), "f-fa" (face-faceapi) or "g-wg" (gaze-webgazer)
 }
+// A copy of the defaults, kept so a state loaded later can be filled in against them the
+// same way a saved link is at startup
+var defaultState = JSON.parse(JSON.stringify(state))
 
 
 function updateDisplayWithState() {
@@ -2789,93 +2792,115 @@ const loadCurrentModel = async () => {
     }
 };
 
-// Switch model and reset recognizer state
-var switchModelGeneration = 0;
+// Switch model and reset recognizer state (keep box mappings)
 async function switchModel(newModel) {
     if (state.md === newModel) return;
 
+    var newState = JSON.parse(JSON.stringify(state))
+    newState.md = newModel;
+    newState.angles = [];
+    newState.dist = [];
+    newState.xy = [];
+    newState.activity = [];
+    newState.boxEnabled = [];
+    newState.sc = {}; // reset scaling
+    if (newModel === "f-fa") {
+        newState.emotions = [];
+        newState.fd = newState.fd || "tiny";
+    } else {
+        delete newState.emotions;
+        delete newState.fd;
+    }
+    await applyState(newState)
+}
+
+// Make `newState` the live state. Used by the model selector and by loading a saved file.
+// The model (and face detector) is only reloaded when it actually differs from what is
+// running, so loading a file for the current model is instant.
+var switchModelGeneration = 0;
+async function applyState(newState) {
+    var oldModel = state.md
+    var needsReload = newState.md !== oldModel
+        || (newState.md === "f-fa" && (newState.fd || "tiny") !== faceDetectorType)
+
+    // Silence what the old state was sending before its outputs change meaning
+    clearEverything()
+
     var myGeneration = ++switchModelGeneration;
     var indicator = document.getElementById('modelLoadingIndicator');
-    var dotCount = 0;
-    indicator.textContent = 'loading.';
-    indicator.style.display = '';
-    var dotInterval = setInterval(function() {
-        dotCount = (dotCount + 1) % 3;
-        indicator.textContent = 'loading' + '.'.repeat(dotCount + 1);
-    }, 400);
-
-    // Clean up face-specific fields from old model
-    if (state.md === "f-fa") {
-        delete state.emotions;
-        delete state.fd;
+    var dotInterval = null
+    if (needsReload) {
+        var dotCount = 0;
+        indicator.textContent = 'loading.';
+        indicator.style.display = '';
+        dotInterval = setInterval(function() {
+            dotCount = (dotCount + 1) % 3;
+            indicator.textContent = 'loading' + '.'.repeat(dotCount + 1);
+        }, 400);
     }
 
     // Tear the eye tracker down when leaving the gaze model
-    if (state.md === "g-wg") {
+    if (oldModel === "g-wg" && newState.md !== "g-wg") {
         closeCalibration();
         stopGaze();
     }
 
-    // Reset recognizer-related state (keep box mappings)
-    state.md = newModel;
-    state.angles = [];
-    state.dist = [];
-    state.xy = [];
-    state.activity = [];
-    state.boxEnabled = [];
-    state.sc = {}; // reset scaling
-
-    // Add face-specific fields if switching to face
-    if (newModel === "f-fa") {
-        state.emotions = [];
+    state = newState;
+    if (state.md === "f-fa") {
         state.fd = state.fd || "tiny";
         faceDetectorType = state.fd;
     }
 
     // Show/hide face-specific UI
-    document.getElementById("faceDetectorType").style.display = (newModel === "f-fa") ? "" : "none";
-    document.getElementById("emotionsRow").style.display = (newModel === "f-fa") ? "" : "none";
-    if (newModel === "f-fa") {
-        document.getElementById("faceDetectorType").value = state.fd || "tiny";
+    document.getElementById("faceDetectorType").style.display = (state.md === "f-fa") ? "" : "none";
+    document.getElementById("emotionsRow").style.display = (state.md === "f-fa") ? "" : "none";
+    if (state.md === "f-fa") {
+        document.getElementById("faceDetectorType").value = state.fd;
     }
+    document.getElementById("modelSelector").value = state.md;
 
-    // Update point arrays
-    updatePointArraysForModel();
+    if (needsReload) {
+        // Update point arrays
+        updatePointArraysForModel();
 
-    // Reset landmarks tracking
-    prevlandmarks = null;
+        // Reset landmarks tracking
+        prevlandmarks = null;
 
-    // Reset running mode so new model can be configured properly
-    runningMode = "IMAGE";
+        // Reset running mode so new model can be configured properly
+        runningMode = "IMAGE";
 
-    // Clear and rebuild the body marker checkboxes BEFORE updating display
-    document.getElementById('bodyMarkerList').innerHTML = "";
-    initState(); // rebuild the body marker checkboxes
+        // Clear and rebuild the body marker checkboxes BEFORE updating display
+        document.getElementById('bodyMarkerList').innerHTML = "";
+        initState(); // rebuild the body marker checkboxes
 
-    // Reload model
-    try {
-        await loadCurrentModel();
-    } catch (e) {
-        // a model that fails to load should say so, not leave "loading..." spinning forever
-        console.error("could not load model " + newModel, e);
-    }
+        // Reload model
+        if (state.md === "f-fa") {
+            faceApiLoaded = false; // hold detection until the new nets are in
+        }
+        try {
+            await loadCurrentModel();
+        } catch (e) {
+            // a model that fails to load should say so, not leave "loading..." spinning forever
+            console.error("could not load model " + state.md, e);
+        }
 
-    if (myGeneration !== switchModelGeneration) {
+        if (myGeneration !== switchModelGeneration) {
+            clearInterval(dotInterval);
+            return;
+        }
         clearInterval(dotInterval);
-        return;
-    }
-    clearInterval(dotInterval);
-    indicator.style.display = 'none';
+        indicator.style.display = 'none';
 
-    // If webcam was running, set the new model to VIDEO mode (skip for face-api)
-    if (webcamRunning && currentLandmarker && newModel !== "f-fa") {
-        runningMode = "VIDEO";
-        await currentLandmarker.setOptions({ runningMode: "VIDEO" });
-    }
+        // If webcam was running, set the new model to VIDEO mode (skip for face-api)
+        if (webcamRunning && currentLandmarker && state.md !== "f-fa") {
+            runningMode = "VIDEO";
+            await currentLandmarker.setOptions({ runningMode: "VIDEO" });
+        }
 
-    // The gaze tracker needs a camera, so it only comes up once one is running
-    if (newModel === "g-wg" && webcamRunning) {
-        startGaze();
+        // The gaze tracker needs a camera, so it only comes up once one is running
+        if (state.md === "g-wg" && oldModel !== "g-wg" && webcamRunning) {
+            startGaze();
+        }
     }
 
     // Update UI (after checkboxes exist)
@@ -3622,6 +3647,54 @@ function closeMidiMap() {
 
 // When the user clicks on the button, open the modal
 btn.onclick = openMidiMap
+
+// Save writes the same object the URL carries, just as a file; load reads one back in. A
+// loaded file goes through the same fill-in-the-blanks as a saved link, so an older file
+// still opens.
+function stateFileName() {
+    var modelNames = { "p-mp": "pose", "h-mp": "hands", "f-fa": "face", "g-wg": "gaze" }
+    var stamp = new Date().toISOString().slice(0, 19).replace("T", "_").replace(/:/g, "-")
+    return "motion-into-midi_" + (modelNames[state.md] || state.md) + "_" + stamp + ".json"
+}
+
+document.getElementById("saveStateButton").onclick = function() {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" })
+    var url = URL.createObjectURL(blob)
+    var a = document.createElement("a")
+    a.href = url
+    a.download = stateFileName()
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+}
+
+document.getElementById("loadStateButton").onclick = function() {
+    var input = document.getElementById("loadStateFile")
+    input.value = "" // so picking the same file twice in a row still fires change
+    input.click()
+}
+
+document.getElementById("loadStateFile").onchange = async function(event) {
+    var file = event.target.files[0]
+    if (!file) return
+    var parsed
+    try {
+        parsed = JSON.parse(await file.text())
+    } catch (e) {
+        alert(file.name + " is not valid JSON.")
+        return
+    }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        alert(file.name + " does not look like a saved motion-into-midi setup.")
+        return
+    }
+    var newState = updateStateToWorkWithCurrentStateObject(defaultState, parsed)
+    if (!newState.md) {
+        newState.md = "p-mp"
+    }
+    await applyState(newState)
+}
 
 // When the user clicks on <span> (x), close the modal
 span.onclick = closeMidiMap
