@@ -1390,11 +1390,19 @@ document.getElementById("widthTextBox").onchange = (event) => {
     stateHasBeenUpdated()
 }
 
+// Box notes are muted while the midi map is open, same as sendMidiCC below. The map's own
+// test buttons go through sendToMidi directly so they are not affected.
 function sendNoteOn(id) {
+    if (midiMapIsOpen) {
+        return;
+    }
     sendToMidi([0x90, getMappingNote(id), 0x7f])
 }
 
 function sendNoteOff(id) {
+    if (midiMapIsOpen) {
+        return;
+    }
     sendToMidi([0x80, getMappingNote(id), 0])
 }
 
@@ -1818,6 +1826,12 @@ function clearEverything() {
         sendMidiCC(14 + i, 0, 127)
         prevlandmarks = null
     }
+    releaseAllNotes()
+}
+
+// Send note-off for every box note that is currently sounding and forget the box state, so
+// the next frame starts from nothing and re-sends note-on for any box still occupied.
+function releaseAllNotes() {
     for (var id in boxNoteState) {
         if (boxNoteState[id]) {
             sendNoteOff(id);
@@ -3221,9 +3235,9 @@ var btn = document.getElementById("myBtn");
 // Get the <span> element that closes the modal
 var span = document.getElementsByClassName("close")[0];
 
-function sendPulse(clickedbutton, numb) {
+// Disable every send button in the map for `ms`, then put them all back to their idle label
+function lockSendButtons(ms) {
     var allsendbuttons = document.getElementsByClassName("sendButton");
-    // Step 1: Disable all other send buttons for 0.5 seconds
     for (let i = 0; i < allsendbuttons.length; i++) {
         allsendbuttons[i].disabled = true;
         allsendbuttons[i].classList.remove("sendButtonNormal")
@@ -3234,9 +3248,14 @@ function sendPulse(clickedbutton, numb) {
             allsendbuttons[i].disabled = false;
             allsendbuttons[i].classList.add("sendButtonNormal")
             allsendbuttons[i].style.background = "#444"
-            allsendbuttons[i].innerHTML = "send pulse"
+            allsendbuttons[i].innerHTML = allsendbuttons[i].idleLabel
         }
-    }, 600);
+    }, ms);
+}
+
+function sendPulse(clickedbutton, numb) {
+    // Step 1: Disable all other send buttons for 0.5 seconds
+    lockSendButtons(600)
 
     // Step 2: Trigger a callback to sendMidiWith(value) with linear ramp values up and down
     let interval = 10; // milliseconds
@@ -3274,6 +3293,19 @@ function sendPulse(clickedbutton, numb) {
             }
         }
     }, interval);
+}
+
+// Note counterpart of sendPulse: a short note-on / note-off so a DAW can learn the key
+function sendNote(clickedbutton, note) {
+    var duration = 300; // ms the note is held
+    lockSendButtons(duration + 100)
+
+    sendToMidi([0x90, note, 0x7f])
+    clickedbutton.style.background = "#888"
+    setTimeout(() => {
+        sendToMidi([0x80, note, 0])
+        clickedbutton.style.background = "black"
+    }, duration);
 }
 
 // Example function to simulate sending MIDI data
@@ -3428,11 +3460,11 @@ function updateAllScalingCanvases() {
     }
 }
 
-function createMidiMapDiv(ccnumb, label){
-    var newdiv = document.createElement("div")
+// A map-row button. `send` runs after the optional 3 second delay from the checkbox.
+function createSendButton(idleLabel, send){
     var sendButton = document.createElement("button")
-    sendButton.innerHTML = "send pulse"
-    sendButton.ccNumber = ccnumb
+    sendButton.innerHTML = idleLabel
+    sendButton.idleLabel = idleLabel
     sendButton.classList.add("sendButton")
     sendButton.classList.add("sendButtonNormal")
     sendButton.style.marginRight = "5px"
@@ -3447,10 +3479,19 @@ function createMidiMapDiv(ccnumb, label){
         console.log("Do Delay:" + delayTime)
         setTimeout(()=>{
             event.target.innerHTML = "sending..."
-            console.log(event.target.ccNumber)
-            sendPulse(event.target, event.target.ccNumber)            
+            send(event.target)
         },delayTime)
     }
+    return sendButton
+}
+
+function createMidiMapDiv(ccnumb, label){
+    var newdiv = document.createElement("div")
+    var sendButton = createSendButton("send pulse", (button)=>{
+        console.log(ccnumb)
+        sendPulse(button, ccnumb)
+    })
+    sendButton.ccNumber = ccnumb
     var scalingCanvas = createScalingCanvas(ccnumb)
     var labelSpan = document.createElement("span")
     labelSpan.innerHTML = ccnumb +" - "+label
@@ -3462,6 +3503,22 @@ function createMidiMapDiv(ccnumb, label){
     // Initial draw
     drawScalingCanvas(scalingCanvas)
 
+    return newdiv
+}
+
+// One row per distinct box note. Several boxes sharing a note is normal, so they are listed
+// together rather than flagged as duplicates like CC channels are.
+function createNoteMapDiv(note, boxIds){
+    var newdiv = document.createElement("div")
+    var sendButton = createSendButton("send note", (button)=>{
+        console.log(note)
+        sendNote(button, note)
+    })
+    var labelSpan = document.createElement("span")
+    labelSpan.innerHTML = toNoteName(note) + " (" + note + ") - box" + (boxIds.length > 1 ? "es" : "") + ": " + boxIds.join(", ")
+    newdiv.appendChild(sendButton)
+    newdiv.appendChild(labelSpan)
+    newdiv.note = note
     return newdiv
 }
 
@@ -3516,33 +3573,63 @@ function renderInsidesOfMidiModal(){
     for(var i = 0; i < divsToAdd.length;i++){
         document.getElementById("midimaplist").appendChild(divsToAdd[i])
     }
+
+    // then the box notes, grouped by note and in pitch order
+    var boxesByNote = {}
+    for (var id in state.mappings) {
+        var note = getMappingNote(id)
+        if (!(note in boxesByNote)) {
+            boxesByNote[note] = []
+        }
+        boxesByNote[note].push(id)
+    }
+    var noteDivs = Object.keys(boxesByNote).map((note) => createNoteMapDiv(parseInt(note), boxesByNote[note]))
+    noteDivs.sort((a, b) => a.note - b.note)
+    if (divsToAdd.length > 0 && noteDivs.length > 0) {
+        document.getElementById("midimaplist").appendChild(document.createElement("br"))
+    }
+    for(var i = 0; i < noteDivs.length;i++){
+        document.getElementById("midimaplist").appendChild(noteDivs[i])
+    }
+
     document.getElementById("delayCheckboxArea").style.display = "block"
-    if(divsToAdd.length == 0){
+    if(divsToAdd.length == 0 && noteDivs.length == 0){
         var newdiv = document.createElement("div")
-        newdiv.innerHTML = "No midi CC channels to send. Please create new outputs first by adding a new activity, distance, angle, or XY, and then come back here to map them."
+        newdiv.innerHTML = "Nothing to send yet. Please create new outputs first by adding a new activity, distance, angle, or XY, or enabling a box, and then come back here to map them."
         document.getElementById("midimaplist").appendChild(newdiv)
         document.getElementById("delayCheckboxArea").style.display = "none"
     }
 }
 
-// When the user clicks on the button, open the modal
-btn.onclick = function() {
+// Opening the map pauses every midi output the tracker makes (CC and box notes) so that only
+// the map's own send buttons reach the DAW. Notes that are sounding are released first,
+// before the mute takes effect, so nothing is left hanging.
+function openMidiMap() {
+  releaseAllNotes()
   renderInsidesOfMidiModal()
   modal.style.display = "block";
   midiMapIsOpen = true;
 }
 
-// When the user clicks on <span> (x), close the modal
-span.onclick = function() {
+function closeMidiMap() {
   modal.style.display = "none";
+  // note-ons were swallowed while the map was open, so there is nothing to release; this runs
+  // while still muted purely to forget the box state, which makes the next frame send a fresh
+  // note-on for any box that is still occupied
+  releaseAllNotes()
   midiMapIsOpen = false;
 }
+
+// When the user clicks on the button, open the modal
+btn.onclick = openMidiMap
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = closeMidiMap
 
 // When the user clicks anywhere outside of the modal, close it
 window.onclick = function(event) {
   if (event.target == modal) {
-    modal.style.display = "none";
-    midiMapIsOpen = false;
+    closeMidiMap()
   }
 }
 
